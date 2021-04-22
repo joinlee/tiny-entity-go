@@ -42,8 +42,8 @@ func (this *CodeGenerator) GenerateCtxFile() {
 	content := fmt.Sprintf("package %s \n", this.options.PackageName)
 	content += "import ( \n"
 	content += fmt.Sprintf("\"tinyGo/%s\" \n", this.options.ModelFilePath)
-	content += "\"tinyGo/tiny\" \n"
-	content += "tinyMysql \"tinyGo/tiny/mysql\" \n"
+	content += "\"github.com/joinlee/tiny-entity-go\" \n"
+	content += "tinyMysql \"github.com/joinlee/tiny-entity-go/mysql\" \n"
 	content += ") \n"
 	content += fmt.Sprintf("type %s struct { \n", ctxStructName)
 	content += "*tinyMysql.MysqlDataContext \n"

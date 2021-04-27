@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
 	"github.com/joinlee/tiny-entity-go/tagDefine"
 )
 
@@ -236,6 +237,10 @@ func (this *Interpreter) GetColumnSqls(defineMap map[string]interface{}, fieldNa
 		valueStr = "NOT NULL"
 	} else {
 		valueStr = "NULL"
+	}
+
+	if isPk {
+		valueStr = "NOT NULL"
 	}
 
 	defaultValue, has := defineMap[tagDefine.DEFAULT]

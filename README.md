@@ -30,14 +30,21 @@ import (
 	tinyMysql "github.com/joinlee/tiny-entity-go/mysql"
 )
 
-type Account struct {
+type User struct {
 	*tinyMysql.EntityObjectMysql
-	Id       string `tiny:"primaryKey" json:"id"`
-	Username string `tiny:"type:varchar(255);notNull" json:"username"`
-	Password string `tiny:"type:varchar(255);notNull" json:"password"`
-	Status   string `tiny:"type:varchar(255)" json:"status"`
+	Id            string   `tiny:"primaryKey" json:"id"`
+	Name          string   `tiny:"type:varchar(255);notNull" json:"name"`
+	IsOnline      bool     `tiny:"type:tinyint(1)" json:"isOnline"`
+	Phone         string   `tiny:"type:varchar(20)" json:"phone"`
+	IndexNo       int      `tiny:"type:int(10)" json:"indexNo"`
+	OfficePhone   *string  `tiny:"type:varchar(20)" json:"officePhone"`
+	OfficeAddress *string  `tiny:"type:varchar(255)" json:"officeAddress"`
+	OrgId         *string  `tiny:"type:varchar(32)" json:"orgId"`
+	OrgName       *string  `tiny:"type:varchar(255)" json:"orgName"`
+	CreateTime    *int64   `tiny:"type:bigint" json:"createTime"`
+	AccountId     string   `tiny:"type:varchar(32);index" json:"accountId"`
+	Account       *Account `tiny:"mapping:Account" json:"account"`
 }
-
 ```
 
 you can use PrimaryKey() define a primarykey for an entity , and also use Column() define a field.

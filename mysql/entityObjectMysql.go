@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
 	"github.com/joinlee/tiny-entity-go"
 	"github.com/joinlee/tiny-entity-go/tagDefine"
 )
@@ -155,6 +156,7 @@ func (this *EntityObjectMysql) Min() float64 {
 	return 0
 }
 func (this *EntityObjectMysql) Count() int {
+	this.interpreter.CleanSelectPart()
 	this.interpreter.AddToSelect([]string{fmt.Sprintf("COUNT(`%s`.`Id`)", this.tableName)})
 	sqlStr := this.interpreter.GetFinalSql(this.tableName, nil)
 	rows := this.ctx.Query(sqlStr, false)

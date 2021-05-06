@@ -35,6 +35,10 @@ func (this *Interpreter) AddToSelect(fields []string) {
 	this.selectStrs = append(this.selectStrs, strings.Join(fields, ","))
 }
 
+func (this *Interpreter) CleanSelectPart() {
+	this.selectStrs = make([]string, 0)
+}
+
 func (this *Interpreter) GetSelectFieldList(entity Entity, tableName string) []string {
 	list := make([]string, 0)
 	etype := reflect.TypeOf(entity)
@@ -161,6 +165,12 @@ func (this *Interpreter) ConverNilValue(fieldType string, value string) interfac
 			return nil
 		}
 		return &value
+	} else if fieldType == "int" || fieldType == "int64" {
+		v, _ := strconv.Atoi(value)
+		return v
+	} else if fieldType == "bool" {
+		v, _ := strconv.ParseBool(value)
+		return v
 	}
 	return value
 }

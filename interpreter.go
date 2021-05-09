@@ -147,7 +147,6 @@ func (this *Interpreter) TransValueToStr(v interface{}) string {
 }
 
 func (this *Interpreter) ConverNilValue(fieldType string, value string) interface{} {
-	// fmt.Println("qqqqqq", fieldType)
 	if fieldType == "*int" || fieldType == "*int64" {
 		v, _ := strconv.Atoi(value)
 		if value == "" {

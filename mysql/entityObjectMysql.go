@@ -238,13 +238,10 @@ func (this *EntityObjectMysql) queryToDatas(mEntity interface{}, rows map[int]ma
 
 func (this *EntityObjectMysql) formatToData(tableName string, rows map[int]map[string]string) []map[string]interface{} {
 	dataList := make([]map[string]interface{}, 0)
-
-	rpMap := make(map[string]map[string]interface{})
-
 	fieldTypeInfos := this.getEntityFieldInfo(tableName)
 
-	for index := range rows {
-		rowData := rows[index]
+	for i := 0; i < len(rows); i++ {
+		rowData := rows[i]
 		dataMap := make(map[string]interface{})
 
 		for fieldKey, value := range rowData {
@@ -260,11 +257,7 @@ func (this *EntityObjectMysql) formatToData(tableName string, rows map[int]map[s
 			dataMap[fieldName] = this.interpreter.ConverNilValue(fmt.Sprintf("%s", fdType.Type), value)
 		}
 
-		rpMap[dataMap["Id"].(string)] = dataMap
-	}
-
-	for _, item := range rpMap {
-		dataList = append(dataList, item)
+		dataList = append(dataList, dataMap)
 	}
 
 	return dataList

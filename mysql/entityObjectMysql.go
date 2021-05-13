@@ -220,15 +220,15 @@ func (this *EntityObjectMysql) queryToDatas(mEntity interface{}, rows map[int]ma
 	for _, dataItem := range dataList {
 		for mappingTable, mtype := range mappingList {
 			mappingDatas := this.formatToData(mappingTable, rows)
+			joinObj := this.joinEntities[mappingTable]
+			objs := this.joinDataFilter(mappingDatas, dataItem[joinObj.Mkey], joinObj.Fkey)
 
 			if mtype == "one" {
 				if len(mappingDatas) > 0 {
-					dataItem[mappingTable] = mappingDatas[0]
+					dataItem[mappingTable] = objs[0]
 				}
 			} else if mtype == "many" {
-				joinObj := this.joinEntities[mappingTable]
-				mappingDatas = this.joinDataFilter(mappingDatas, dataItem[joinObj.Mkey], joinObj.Fkey)
-				dataItem[mappingTable] = mappingDatas
+				dataItem[mappingTable] = objs
 			}
 		}
 	}

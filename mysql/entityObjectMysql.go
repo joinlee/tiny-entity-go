@@ -257,7 +257,18 @@ func (this *EntityObjectMysql) formatToData(tableName string, rows map[int]map[s
 			dataMap[fieldName] = this.interpreter.ConverNilValue(fmt.Sprintf("%s", fdType.Type), value)
 		}
 
-		dataList = append(dataList, dataMap)
+		exist := false
+		for _, dataListItem := range dataList {
+			if dataListItem["Id"] == dataMap["Id"] {
+				exist = true
+				break
+			}
+		}
+
+		if !exist {
+			dataList = append(dataList, dataMap)
+		}
+
 	}
 
 	return dataList

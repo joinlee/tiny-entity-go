@@ -116,7 +116,7 @@ func (this *MysqlDataContext) DeleteWith(entity tiny.Entity, queryStr interface{
 	qs = this.interpreter.FormatQuerySetence(qs, "")
 
 	tableName := reflect.TypeOf(entity).Elem().Name()
-	sql := fmt.Sprintf("DELETE FROM `%s` WHERE `%s`.`Id`= '%s' ;", tableName, tableName, qs)
+	sql := fmt.Sprintf("DELETE FROM `%s` WHERE %s ;", tableName, qs)
 
 	if this.tx == nil {
 		this.submit(sql)

@@ -72,7 +72,7 @@ func (this *MysqlDataContext) Create(entity tiny.Entity) {
 //更新数据到数据库
 func (this *MysqlDataContext) Update(entity tiny.Entity) {
 	tableName := reflect.TypeOf(entity).Elem().Name()
-	sql := fmt.Sprintf("UPDATE `%s` SET", tableName)
+	sql := fmt.Sprintf("UPDATE `%s` SET ", tableName)
 	_, _, kvMap := this.getKeyValueList(entity, false)
 
 	vList := make([]string, 0)
@@ -98,7 +98,7 @@ func (this *MysqlDataContext) Delete(entity tiny.Entity) {
 	tableName := reflect.TypeOf(entity).Elem().Name()
 	_, _, kvMap := this.getKeyValueList(entity, false)
 
-	sql := fmt.Sprintf("DELETE FROM `%s` WHERE `%s`.`Id`= '%s' ;", tableName, tableName, kvMap["Id"])
+	sql := fmt.Sprintf("DELETE FROM `%s` WHERE `%s`.`Id`= %s ;", tableName, tableName, kvMap["Id"])
 
 	if this.tx == nil {
 		this.submit(sql)

@@ -224,7 +224,7 @@ func (this *EntityObjectMysql) queryToDatas(mEntity interface{}, rows map[int]ma
 			objs := this.joinDataFilter(mappingDatas, dataItem[joinObj.Mkey], joinObj.Fkey)
 
 			if mtype == "one" {
-				if len(mappingDatas) > 0 {
+				if len(mappingDatas) > 0  && len(objs) > 0{
 					dataItem[mappingTable] = objs[0]
 				}
 			} else if mtype == "many" {

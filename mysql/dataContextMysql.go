@@ -136,6 +136,7 @@ func (this *MysqlDataContext) CreateDatabase() {
 
 	db, err := sql.Open("mysql", conStr)
 	if err != nil {
+		db.Close()
 		panic(err)
 	}
 
@@ -143,8 +144,11 @@ func (this *MysqlDataContext) CreateDatabase() {
 	tiny.Log(sql)
 	_, err1 := db.Exec(sql)
 	if err1 != nil {
+		db.Close()
 		panic(err)
 	}
+
+	db.Close()
 }
 
 func (this *MysqlDataContext) DeleteDatabase() {
@@ -155,8 +159,11 @@ func (this *MysqlDataContext) CreateTable(entity tiny.Entity) {
 	sqlStr := this.CreateTableSQL(entity)
 	_, err := this.db.Query(sqlStr)
 	if err != nil {
+		this.db.Close()
 		panic(err)
 	}
+
+	this.db.Close()
 }
 
 func (this *MysqlDataContext) CreateTableSQL(entity tiny.Entity) string {
@@ -258,12 +265,14 @@ func (this *MysqlDataContext) Query(sqlStr string, noCommit bool) map[int]map[st
 	} else {
 		db, err := sql.Open("mysql", this.conStr)
 		if err != nil {
+			db.Close()
 			panic(err)
 		}
 
 		tiny.Log(sqlStr)
 		rows, err := db.Query(sqlStr)
 		if err != nil {
+			db.Close()
 			panic(err)
 		}
 
@@ -296,6 +305,7 @@ func (this *MysqlDataContext) Query(sqlStr string, noCommit bool) map[int]map[st
 			i++
 		}
 
+		db.Close()
 		return result
 	}
 }

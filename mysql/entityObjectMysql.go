@@ -221,10 +221,15 @@ func (this *EntityObjectMysql) queryToDatas(mEntity interface{}, rows map[int]ma
 		for mappingTable, mtype := range mappingList {
 			mappingDatas := this.formatToData(mappingTable, rows)
 			joinObj := this.joinEntities[mappingTable]
-			objs := this.joinDataFilter(mappingDatas, dataItem[joinObj.Mkey], joinObj.Fkey)
 
+			mkeyValue := reflect.ValueOf(dataItem[joinObj.Mkey])
+			mkeyValueType := reflect.TypeOf(dataItem[joinObj.Mkey])
+			if mkeyValueType.Kind() == reflect.Ptr {
+				mkeyValue = mkeyValue.Elem()
+			}
+			objs := this.joinDataFilter(mappingDatas, mkeyValue, joinObj.Fkey)
 			if mtype == "one" {
-				if len(mappingDatas) > 0  && len(objs) > 0{
+				if len(mappingDatas) > 0 && len(objs) > 0 {
 					dataItem[mappingTable] = objs[0]
 				}
 			} else if mtype == "many" {
@@ -289,7 +294,7 @@ func (this *EntityObjectMysql) getEntityFieldInfo(tableName string) map[string]r
 func (this *EntityObjectMysql) joinDataFilter(arr []map[string]interface{}, mKeyValue interface{}, fKey string) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0)
 	for _, item := range arr {
-		if item[fKey] == mKeyValue {
+		if fmt.Sprintf("%s", item[fKey]) == fmt.Sprintf("%s", mKeyValue) {
 			result = append(result, item)
 		}
 	}

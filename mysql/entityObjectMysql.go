@@ -106,7 +106,7 @@ func (this *EntityObjectMysql) Contains(field string, values interface{}) tiny.I
 	refV := reflect.ValueOf(values)
 	for i := 0; i < refV.Len(); i++ {
 		item := refV.Index(i)
-		vList = append(vList, this.interpreter.TransValueToStr(item))
+		vList = append(vList, this.interpreter.TransValueToStr(item.Interface()))
 	}
 	sql := fmt.Sprintf("`%s`.`%s` IN (%s)", tableName, field, strings.Join(vList, ","))
 	this.interpreter.AddToWhere(sql)

@@ -113,7 +113,6 @@ func (this *MysqlDataContext) DeleteWith(entity tiny.Entity, queryStr interface{
 	for _, value := range args {
 		qs = strings.Replace(qs, "?", this.interpreter.TransValueToStr(value), 1)
 	}
-	//qs = this.interpreter.FormatQuerySetence(qs, "")
 
 	tableName := reflect.TypeOf(entity).Elem().Name()
 	sql := fmt.Sprintf("DELETE FROM `%s` WHERE %s ;", tableName, qs)
@@ -157,7 +156,8 @@ func (this *MysqlDataContext) DeleteDatabase() {
 
 func (this *MysqlDataContext) CreateTable(entity tiny.Entity) {
 	sqlStr := this.CreateTableSQL(entity)
-	_, err := this.db.Query(sqlStr)
+	rows, err := this.db.Query(sqlStr)
+	rows.Close()
 	if err != nil {
 		this.db.Close()
 		panic(err)
@@ -202,7 +202,8 @@ func (this *MysqlDataContext) Commit() {
 		} else if this.tranCount == 1 {
 			this.tranCount = 0
 			tiny.Log(strings.Join(this.querySentence, ""))
-			_, err := this.tx.Query(strings.Join(this.querySentence, ""))
+			rows, err := this.tx.Query(strings.Join(this.querySentence, ""))
+			rows.Close()
 			if err != nil {
 				panic(err)
 			}
@@ -214,8 +215,9 @@ func (this *MysqlDataContext) Commit() {
 		}
 	} else {
 		tiny.Log(strings.Join(this.querySentence, "\n"))
-		_, err := this.db.Query(strings.Join(this.querySentence, "\n"))
+		rows, err := this.db.Query(strings.Join(this.querySentence, "\n"))
 		this.db.Close()
+		rows.Close()
 		if err != nil {
 			panic(err)
 		}
@@ -223,10 +225,9 @@ func (this *MysqlDataContext) Commit() {
 }
 
 func (this *MysqlDataContext) submit(sqlStr string) {
-	// this.querySentence = append(this.querySentence, sqlStr)
-	// strings.Join(this.querySentence, "\n")
-	_, err := this.db.Query(sqlStr)
+	rows, err := this.db.Query(sqlStr)
 	this.db.Close()
+	rows.Close()
 	if err != nil {
 		panic(err)
 	}
@@ -305,6 +306,7 @@ func (this *MysqlDataContext) Query(sqlStr string, noCommit bool) map[int]map[st
 			i++
 		}
 
+		rows.Close()
 		db.Close()
 		return result
 	}

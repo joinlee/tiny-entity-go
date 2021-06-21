@@ -3,6 +3,8 @@ package tiny
 type IDataContext interface {
 	//插入数据到数据库
 	Create(entity Entity)
+	// 批量插入数据到数据库
+	CreateBatch(entities []Entity)
 	//更新数据到数据库
 	Update(entity Entity)
 	//通过实体Id 删除数据

@@ -69,6 +69,32 @@ func (this *MysqlDataContext) Create(entity tiny.Entity) {
 	}
 }
 
+func (this *MysqlDataContext) CreateBatch(entities []tiny.Entity) {
+	if len(entities) > 0 {
+		tableName := reflect.TypeOf(entities[0]).Elem().Name()
+		sql := fmt.Sprintf("INSERT INTO `%s`", tableName)
+		fieldPart := ""
+		valueStrs := make([]string, 0)
+
+		for _, entity := range entities {
+			tfields, values, _ := this.getKeyValueList(entity, true)
+			if fieldPart == "" {
+				fieldPart = strings.Join(tfields, ",")
+			}
+			valueStrs = append(valueStrs, fmt.Sprintf("(%s)", strings.Join(values, ",")))
+		}
+
+		sql = fmt.Sprintf("%s (%s) VALUES %s;", sql, fieldPart, strings.Join(valueStrs, ","))
+
+		if this.tx == nil {
+			this.submit(sql)
+		} else {
+			this.querySentence = append(this.querySentence, sql)
+		}
+	}
+
+}
+
 //更新数据到数据库
 func (this *MysqlDataContext) Update(entity tiny.Entity) {
 	tableName := reflect.TypeOf(entity).Elem().Name()

@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"time"
+
 	"github.com/joinlee/tiny-entity-go/tagDefine"
 )
 
@@ -336,6 +337,7 @@ func (this *CodeGenerator) ComparisonColumn(oldC MigrationLogContent, newC Migra
 			}
 			_, hasNewItem := newC.ColumnDefine[columnName]
 			if !hasNewItem {
+				oldItem[tagDefine.Column] = columnName
 				diff = append(diff, MigrationLogDiff{NewItem: nil, OldItem: oldItem})
 			}
 		}

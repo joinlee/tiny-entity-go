@@ -210,6 +210,17 @@ func (this *CodeGenerator) TransLogToSqls(historyLog MigrationLog) []string {
 		}
 	}
 
+	tmp := make(map[string]int)
+
+	for _, item := range sqlStr {
+		tmp[item] = 1
+	}
+
+	sqlStr = make([]string, 0)
+	for sql := range tmp {
+		sqlStr = append(sqlStr, sql)
+	}
+
 	return sqlStr
 }
 

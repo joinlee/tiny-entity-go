@@ -229,7 +229,10 @@ func (this *MysqlDataContext) Commit() {
 			this.tranCount = 0
 			tiny.Log(strings.Join(this.querySentence, ""))
 			rows, err := this.tx.Query(strings.Join(this.querySentence, ""))
-			rows.Close()
+			if rows != nil {
+				rows.Close()
+			}
+
 			if err != nil {
 				panic(err)
 			}
@@ -243,7 +246,9 @@ func (this *MysqlDataContext) Commit() {
 		tiny.Log(strings.Join(this.querySentence, "\n"))
 		rows, err := this.db.Query(strings.Join(this.querySentence, "\n"))
 		this.db.Close()
-		rows.Close()
+		if rows != nil {
+			rows.Close()
+		}
 		if err != nil {
 			panic(err)
 		}

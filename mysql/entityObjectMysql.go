@@ -60,7 +60,7 @@ func (this *EntityObjectMysql) WhereWith(entity tiny.Entity, queryStr interface{
 }
 
 func (this *EntityObjectMysql) wherePartHandle(tableName string, queryStr interface{}, args []interface{}) tiny.IQueryObject {
-	if queryStr == nil {
+	if queryStr == nil || queryStr == "" {
 		return this
 	}
 	qs := queryStr.(string)

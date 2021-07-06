@@ -224,6 +224,9 @@ func (this *EntityObjectMysql) queryToDatas(mEntity interface{}, rows map[int]ma
 
 			mkeyValue := reflect.ValueOf(dataItem[joinObj.Mkey])
 			mkeyValueType := reflect.TypeOf(dataItem[joinObj.Mkey])
+			if mkeyValueType == nil {
+				continue
+			}
 			if mkeyValueType.Kind() == reflect.Ptr {
 				mkeyValue = mkeyValue.Elem()
 			}

@@ -461,7 +461,5 @@ type MigrationLogDiff struct {
 }
 
 func Log(v interface{}) {
-	// log.SetPrefix("[Tiny Debug] ")
-	// log.Println(v)
 	fmt.Println("[Tiny Debug]", v)
 }

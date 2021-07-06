@@ -226,6 +226,10 @@ func (this *MysqlDataContext) Commit() {
 		if this.tranCount > 1 {
 			this.tranCount--
 		} else if this.tranCount == 1 {
+			if len(this.querySentence) == 0 {
+				this.cleanTransactionStatus()
+				return
+			}
 			this.tranCount = 0
 			tiny.Log(strings.Join(this.querySentence, ""))
 			rows, err := this.tx.Query(strings.Join(this.querySentence, ""))

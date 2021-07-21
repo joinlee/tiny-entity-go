@@ -59,6 +59,24 @@ func (this *EntityObjectMysql) WhereWith(entity tiny.Entity, queryStr interface{
 	return this.wherePartHandle(tableName, queryStr, args)
 }
 
+func (this *EntityObjectMysql) In(felid string, values interface{}) tiny.IQueryObject {
+	qs := "`" + this.tableName + "`.`" + felid + "` IN"
+	vs := make([]string, 0)
+
+	if reflect.TypeOf(values).Kind() == reflect.Slice {
+		s := reflect.ValueOf(values)
+		for i := 0; i < s.Len(); i++ {
+			value := s.Index(i)
+			vs = append(vs, this.interpreter.TransValueToStrByType(value, value.Kind().String()))
+		}
+
+		qs = qs + " ( " + strings.Join(vs, ",") + " )"
+		this.interpreter.AddToWhere(qs)
+	}
+
+	return this
+}
+
 func (this *EntityObjectMysql) wherePartHandle(tableName string, queryStr interface{}, args []interface{}) tiny.IQueryObject {
 	if queryStr == nil || queryStr == "" {
 		return this

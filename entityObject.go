@@ -25,6 +25,8 @@ type IQueryObject interface {
 	   entity 表示查询外键表的条件
 	   ex： ctx.User.WhereWith(ctx.Account, "Id = ?", user.Id).Any() */
 	WhereWith(entity Entity, queryStr interface{}, args ...interface{}) IQueryObject
+	// 添加IN 条件语句到查询条件
+	In(felid string, values interface{}) IQueryObject
 	//对指定字段进行顺序排序
 	OrderBy(fields interface{}) IQueryObject
 	//对指定字段进行倒序排序

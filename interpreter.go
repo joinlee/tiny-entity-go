@@ -129,18 +129,19 @@ func (this *Interpreter) GetFinalSql(tableName string, entity Entity) string {
 }
 
 func (this *Interpreter) TransValueToStr(v interface{}) string {
-	result := "NULL"
-
 	valueType := reflect.TypeOf(v)
 	vtStr := valueType.Name()
 
 	// fmt.Println("xxxxxx: ", vtStr)
-
-	if vtStr == "string" {
+	return this.TransValueToStrByType(v, vtStr)
+}
+func (this *Interpreter) TransValueToStrByType(v interface{}, typeName string) string {
+	result := "NULL"
+	if typeName == "string" {
 		result = fmt.Sprintf("'%s'", v)
-	} else if vtStr == "int" || vtStr == "int64" {
+	} else if typeName == "int" || typeName == "int64" {
 		result = fmt.Sprintf("%d", v)
-	} else if vtStr == "bool" {
+	} else if typeName == "bool" {
 		result = strconv.FormatBool(v.(bool))
 	}
 	return result

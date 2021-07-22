@@ -46,6 +46,11 @@ type IQueryObject interface {
 		fEntity 需要连接的实体， mField 主表的连接字段， fField 外联表的字段
 	*/
 	JoinOn(foreignEntity Entity, mField string, fField string) IQueryObject
+	// 添加外联引用
+	/*
+		mEntity 主表实体 fEntity 需要连接的实体， mField 主表的连接字段， fField 外联表的字段
+	*/
+	JoinOnWith(mEntity Entity, fEntity Entity, mField string, fField string) IQueryObject
 }
 
 type IResultQueryObject interface {

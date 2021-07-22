@@ -146,9 +146,17 @@ func (this *EntityObjectMysql) Skip(count int) tiny.IAssembleResultQuery {
 	fEntity 需要连接的实体， mField 主表的连接字段， fField 外联表的字段
 */
 func (this *EntityObjectMysql) JoinOn(fEntity tiny.Entity, mField string, fField string) tiny.IQueryObject {
+	return this.joinHandle(this.tableName, fEntity, mField, fField)
+}
+
+func (this *EntityObjectMysql) JoinOnWith(mEntity tiny.Entity, fEntity tiny.Entity, mField string, fField string) tiny.IQueryObject {
+	mTableName := mEntity.TableName()
+	return this.joinHandle(mTableName, fEntity, mField, fField)
+}
+func (this *EntityObjectMysql) joinHandle(mTableName string, fEntity tiny.Entity, mField string, fField string) tiny.IQueryObject {
 	if len(this.joinEntities) == 0 {
-		mEntity := this.ctx.GetEntityInstance(this.tableName)
-		mainTableFields := this.interpreter.GetSelectFieldList(mEntity.(tiny.Entity), this.tableName)
+		mEntity := this.ctx.GetEntityInstance(mTableName)
+		mainTableFields := this.interpreter.GetSelectFieldList(mEntity.(tiny.Entity), mTableName)
 		this.interpreter.AddToSelect(mainTableFields)
 	}
 
@@ -160,7 +168,7 @@ func (this *EntityObjectMysql) JoinOn(fEntity tiny.Entity, mField string, fField
 		Fkey:   fField,
 		Entity: fEntity,
 	}
-	sqlStr := fmt.Sprintf(" LEFT JOIN `%s` ON `%s`.`%s` = `%s`.`%s`", fEntity.TableName(), this.tableName, mField, fEntity.TableName(), fField)
+	sqlStr := fmt.Sprintf(" LEFT JOIN `%s` ON `%s`.`%s` = `%s`.`%s`", fEntity.TableName(), mTableName, mField, fEntity.TableName(), fField)
 	this.interpreter.AddToJoinOn(sqlStr)
 	return this
 }
@@ -198,7 +206,7 @@ func (this *EntityObjectMysql) First(entity interface{}) (bool, *tiny.Empty) {
 	rows := this.ctx.Query(sqlStr, false)
 	// fmt.Println("sql result First:", rows)
 
-	dataList := this.queryToDatas(mEntity, rows)
+	dataList := this.queryToDatas2(this.tableName, rows)
 
 	isNull := false
 
@@ -225,10 +233,48 @@ func (this *EntityObjectMysql) ToList(list interface{}) {
 	rows := this.ctx.Query(sqlStr, false)
 	// fmt.Println("sql result: ", rows)
 
-	dataList := this.queryToDatas(mEntity, rows)
+	// dataList := this.queryToDatas(mEntity, rows)
+
+	dataList := this.queryToDatas2(this.tableName, rows)
+
 	jsonStr := tiny.JsonStringify(dataList)
 	json.Unmarshal([]byte(jsonStr), list)
 	this.initEntityObj(this.tableName)
+}
+
+func (this *EntityObjectMysql) queryToDatas2(tableName string, rows map[int]map[string]string) []map[string]interface{} {
+	mEntity := this.ctx.GetEntityInstance(tableName)
+	mappingList := this.getEntityMappingFields(mEntity)
+
+	dataList := this.formatToData(tableName, rows)
+
+	if len(mappingList) > 0 {
+		for _, dataItem := range dataList {
+			for mappingTable, mtype := range mappingList {
+				mappingDatas := this.queryToDatas2(mappingTable, rows)
+				joinObj := this.joinEntities[mappingTable]
+
+				mkeyValue := reflect.ValueOf(dataItem[joinObj.Mkey])
+				mkeyValueType := reflect.TypeOf(dataItem[joinObj.Mkey])
+				if mkeyValueType == nil {
+					continue
+				}
+				if mkeyValueType.Kind() == reflect.Ptr {
+					mkeyValue = mkeyValue.Elem()
+				}
+				objs := this.joinDataFilter(mappingDatas, mkeyValue, joinObj.Fkey)
+				if mtype == "one" {
+					if len(mappingDatas) > 0 && len(objs) > 0 {
+						dataItem[mappingTable] = objs[0]
+					}
+				} else if mtype == "many" {
+					dataItem[mappingTable] = objs
+				}
+			}
+		}
+	}
+
+	return dataList
 }
 
 func (this *EntityObjectMysql) queryToDatas(mEntity interface{}, rows map[int]map[string]string) []map[string]interface{} {

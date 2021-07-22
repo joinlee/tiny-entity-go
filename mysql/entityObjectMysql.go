@@ -277,36 +277,36 @@ func (this *EntityObjectMysql) queryToDatas2(tableName string, rows map[int]map[
 	return dataList
 }
 
-func (this *EntityObjectMysql) queryToDatas(mEntity interface{}, rows map[int]map[string]string) []map[string]interface{} {
-	mappingList := this.getEntityMappingFields(mEntity)
+// func (this *EntityObjectMysql) queryToDatas(mEntity interface{}, rows map[int]map[string]string) []map[string]interface{} {
+// 	mappingList := this.getEntityMappingFields(mEntity)
 
-	dataList := this.formatToData(this.tableName, rows)
-	for _, dataItem := range dataList {
-		for mappingTable, mtype := range mappingList {
-			mappingDatas := this.formatToData(mappingTable, rows)
-			joinObj := this.joinEntities[mappingTable]
+// 	dataList := this.formatToData(this.tableName, rows)
+// 	for _, dataItem := range dataList {
+// 		for mappingTable, mtype := range mappingList {
+// 			mappingDatas := this.formatToData(mappingTable, rows)
+// 			joinObj := this.joinEntities[mappingTable]
 
-			mkeyValue := reflect.ValueOf(dataItem[joinObj.Mkey])
-			mkeyValueType := reflect.TypeOf(dataItem[joinObj.Mkey])
-			if mkeyValueType == nil {
-				continue
-			}
-			if mkeyValueType.Kind() == reflect.Ptr {
-				mkeyValue = mkeyValue.Elem()
-			}
-			objs := this.joinDataFilter(mappingDatas, mkeyValue, joinObj.Fkey)
-			if mtype == "one" {
-				if len(mappingDatas) > 0 && len(objs) > 0 {
-					dataItem[mappingTable] = objs[0]
-				}
-			} else if mtype == "many" {
-				dataItem[mappingTable] = objs
-			}
-		}
-	}
+// 			mkeyValue := reflect.ValueOf(dataItem[joinObj.Mkey])
+// 			mkeyValueType := reflect.TypeOf(dataItem[joinObj.Mkey])
+// 			if mkeyValueType == nil {
+// 				continue
+// 			}
+// 			if mkeyValueType.Kind() == reflect.Ptr {
+// 				mkeyValue = mkeyValue.Elem()
+// 			}
+// 			objs := this.joinDataFilter(mappingDatas, mkeyValue, joinObj.Fkey)
+// 			if mtype == "one" {
+// 				if len(mappingDatas) > 0 && len(objs) > 0 {
+// 					dataItem[mappingTable] = objs[0]
+// 				}
+// 			} else if mtype == "many" {
+// 				dataItem[mappingTable] = objs
+// 			}
+// 		}
+// 	}
 
-	return dataList
-}
+// 	return dataList
+// }
 
 func (this *EntityObjectMysql) formatToData(tableName string, rows map[int]map[string]string) []map[string]interface{} {
 	dataList := make([]map[string]interface{}, 0)

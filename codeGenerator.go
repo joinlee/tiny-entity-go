@@ -461,5 +461,8 @@ type MigrationLogDiff struct {
 }
 
 func Log(v interface{}) {
-	fmt.Println("[Tiny Debug]", v)
+	value := os.Getenv("TINY_LOG")
+	if value == "ON" {
+		fmt.Println("[Tiny Debug]", v)
+	}
 }

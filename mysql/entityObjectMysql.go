@@ -174,11 +174,12 @@ func (this *EntityObjectMysql) joinHandle(mTableName string, fEntity tiny.Entity
 }
 
 func (this *EntityObjectMysql) Max() float64 {
-
+	this.interpreter.Clean()
 	return 0
 }
 
 func (this *EntityObjectMysql) Min() float64 {
+	this.interpreter.Clean()
 	return 0
 }
 func (this *EntityObjectMysql) Count() int {
@@ -186,13 +187,14 @@ func (this *EntityObjectMysql) Count() int {
 	this.interpreter.AddToSelect([]string{fmt.Sprintf("COUNT(`%s`.`Id`)", this.tableName)})
 	sqlStr := this.interpreter.GetFinalSql(this.tableName, nil)
 	rows := this.ctx.Query(sqlStr, false)
-	fmt.Println("sql result First:", rows)
+	fmt.Println("sql result First:", rows, len(rows))
 	result := 0
 	for _, rowData := range rows {
 		for _, cellData := range rowData {
 			result, _ = strconv.Atoi(cellData)
 		}
 	}
+	this.interpreter.Clean()
 	return result
 }
 func (this *EntityObjectMysql) Any() bool {
@@ -219,6 +221,7 @@ func (this *EntityObjectMysql) First(entity interface{}) (bool, *tiny.Empty) {
 	}
 
 	this.initEntityObj(this.tableName)
+	this.interpreter.Clean()
 
 	if isNull {
 		return isNull, &tiny.Empty{}
@@ -240,6 +243,7 @@ func (this *EntityObjectMysql) ToList(list interface{}) {
 	jsonStr := tiny.JsonStringify(dataList)
 	json.Unmarshal([]byte(jsonStr), list)
 	this.initEntityObj(this.tableName)
+	this.interpreter.Clean()
 }
 
 func (this *EntityObjectMysql) queryToDatas2(tableName string, rows map[int]map[string]string) []map[string]interface{} {

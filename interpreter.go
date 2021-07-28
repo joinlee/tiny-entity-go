@@ -38,6 +38,14 @@ func (this *Interpreter) AddToSelect(fields []string) {
 func (this *Interpreter) CleanSelectPart() {
 	this.selectStrs = make([]string, 0)
 }
+func (this *Interpreter) Clean() {
+	this.whereStrs = make([]string, 0)
+	this.selectStrs = make([]string, 0)
+	this.groupByStrs = make([]string, 0)
+	this.orderByStrs = make([]string, 0)
+	this.limt = make(map[string]int)
+	this.joinOnPart = make([]string, 0)
+}
 
 func (this *Interpreter) GetSelectFieldList(entity Entity, tableName string) []string {
 	list := make([]string, 0)

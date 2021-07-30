@@ -60,7 +60,15 @@ func (this *EntityObjectMysql) WhereWith(entity tiny.Entity, queryStr interface{
 }
 
 func (this *EntityObjectMysql) In(felid string, values interface{}) tiny.IQueryObject {
-	qs := "`" + this.tableName + "`.`" + felid + "` IN"
+	return this.inPartHandle(this.tableName, felid, values)
+}
+
+func (this *EntityObjectMysql) InWith(entity tiny.Entity, felid string, values interface{}) tiny.IQueryObject {
+	tableName := reflect.TypeOf(entity).Elem().Name()
+	return this.inPartHandle(tableName, felid, values)
+}
+func (this *EntityObjectMysql) inPartHandle(tableName string, felid string, values interface{}) tiny.IQueryObject {
+	qs := "`" + tableName + "`.`" + felid + "` IN"
 	vs := make([]string, 0)
 
 	if reflect.TypeOf(values).Kind() == reflect.Slice {
@@ -73,7 +81,6 @@ func (this *EntityObjectMysql) In(felid string, values interface{}) tiny.IQueryO
 		qs = qs + " ( " + strings.Join(vs, ",") + " )"
 		this.interpreter.AddToWhere(qs)
 	}
-
 	return this
 }
 

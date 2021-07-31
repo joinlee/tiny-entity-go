@@ -140,7 +140,6 @@ func (this *Interpreter) TransValueToStr(v interface{}) string {
 	valueType := reflect.TypeOf(v)
 	vtStr := valueType.Name()
 
-	// fmt.Println("xxxxxx: ", vtStr)
 	return this.TransValueToStrByType(v, vtStr)
 }
 func (this *Interpreter) TransValueToStrByType(v interface{}, typeName string) string {
@@ -152,7 +151,7 @@ func (this *Interpreter) TransValueToStrByType(v interface{}, typeName string) s
 	} else if typeName == "bool" {
 		result = strconv.FormatBool(v.(bool))
 	}
-	return result
+	return this.FormatSQL(result)
 }
 
 func (this *Interpreter) ConverNilValue(fieldType string, value string) interface{} {
@@ -302,6 +301,13 @@ func (this *Interpreter) FormatQuerySetence(qs string, tableName string) string 
 
 	qs = strings.Join(qsList, " ")
 	return qs
+}
+
+func (this *Interpreter) FormatSQL(sql string) string {
+	sql = strings.ReplaceAll(sql, "'", "\\'")
+	sql = strings.ReplaceAll(sql, "\"", "\"")
+
+	return sql
 }
 
 func IntToPtr(value int) *int {

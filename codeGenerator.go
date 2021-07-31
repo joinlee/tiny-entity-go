@@ -110,8 +110,8 @@ func (this *CodeGenerator) LoadEntityModes() []string {
 func (this *CodeGenerator) AutoMigration(ctx IDataContext) {
 	this.ctx = ctx
 	var logReport MigrationLog
-
-	fileStr := ReadFile("migrationLogs.json")
+	dir, _ := os.Getwd()
+	fileStr := ReadFile(fmt.Sprintf("%s/migrationLogs.json", dir))
 	if fileStr != "" {
 		json.Unmarshal([]byte(fileStr), &logReport)
 		// 已经有历史的迁移记录

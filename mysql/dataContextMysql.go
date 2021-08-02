@@ -45,6 +45,7 @@ func NewMysqlDataContext(opt MysqlDataOption) *MysqlDataContext {
 	db.SetConnMaxLifetime(time.Minute * 3)
 	db.SetMaxOpenConns(opt.ConnectionLimit)
 	db.SetMaxIdleConns(20)
+	db.SetConnMaxIdleTime(time.Second * 60)
 
 	ctx.interpreter = &tiny.Interpreter{}
 	ctx.option = opt

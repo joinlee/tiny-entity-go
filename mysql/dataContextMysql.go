@@ -413,6 +413,11 @@ func (this *MysqlDataContext) getKeyValueList(entity tiny.Entity, includeNilValu
 			}
 		}
 
+		_, isAES := defineMap[tagDefine.AES]
+		if isAES {
+			vStr = this.interpreter.AesEncrypt(vStr, this.interpreter.AESKey)
+		}
+
 		kvMap[fmt.Sprintf("%s", columnName)] = vStr
 	}
 

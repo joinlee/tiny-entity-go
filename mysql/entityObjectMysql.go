@@ -256,6 +256,7 @@ func (this *EntityObjectMysql) ToList(list interface{}) {
 func (this *EntityObjectMysql) queryToDatas2(tableName string, rows map[int]map[string]string) []map[string]interface{} {
 	mEntity := this.ctx.GetEntityInstance(tableName)
 	mappingList := this.getEntityMappingFields(mEntity)
+	aesList := this.getEntityAESFields(mEntity)
 
 	dataList := this.formatToData(tableName, rows)
 
@@ -281,6 +282,14 @@ func (this *EntityObjectMysql) queryToDatas2(tableName string, rows map[int]map[
 				} else if mtype == "many" {
 					dataItem[mappingTable] = objs
 				}
+			}
+		}
+	}
+
+	if len(aesList) > 0 {
+		for _, dataItem := range dataList {
+			for _, item := range aesList {
+				dataItem[item] = this.interpreter.AesDecrypt(dataItem[item].(string), this.interpreter.AESKey)
 			}
 		}
 	}
@@ -374,6 +383,25 @@ func (this *EntityObjectMysql) joinDataFilter(arr []map[string]interface{}, mKey
 	for _, item := range arr {
 		if fmt.Sprintf("%s", item[fKey]) == fmt.Sprintf("%s", mKeyValue) {
 			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func (this *EntityObjectMysql) getEntityAESFields(entity interface{}) []string {
+	result := make([]string, 0)
+	eType := reflect.TypeOf(entity)
+	entityPtrValueElem := reflect.ValueOf(reflect.New(eType).Interface()).Elem()
+	for i := 0; i < entityPtrValueElem.NumField(); i++ {
+		fdType := eType.Field(i)
+		defineStr, has := this.interpreter.GetFieldDefineStr(fdType)
+		if !has {
+			continue
+		}
+		defineMap := this.interpreter.FormatDefine(defineStr)
+		_, hasAES := defineMap[tagDefine.AES]
+		if hasAES {
+			result = append(result, fdType.Name)
 		}
 	}
 	return result

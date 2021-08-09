@@ -13,6 +13,8 @@ import (
 	"github.com/joinlee/tiny-entity-go/tagDefine"
 )
 
+var AESKey = "53798C8E9F68B02F82E892F64F5DEF8B"
+
 type Interpreter struct {
 	tableName   string
 	selectStrs  []string
@@ -33,7 +35,7 @@ func NewInterpreter(tableName string) *Interpreter {
 	interpreter.limt = make(map[string]int)
 	interpreter.joinOnPart = make([]string, 0)
 	interpreter.tableName = tableName
-	interpreter.AESKey = "53798C8E9F68B02F82E892F64F5DEF8B"
+	interpreter.AESKey = AESKey
 	return interpreter
 }
 

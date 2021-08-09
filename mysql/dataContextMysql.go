@@ -48,6 +48,7 @@ func NewMysqlDataContext(opt MysqlDataOption) *MysqlDataContext {
 	db.SetConnMaxIdleTime(time.Second * 60)
 
 	ctx.interpreter = &tiny.Interpreter{}
+	ctx.interpreter.AESKey = tiny.AESKey
 	ctx.option = opt
 	ctx.querySentence = make([]string, 0)
 	ctx.tranCount = 0
@@ -385,10 +386,16 @@ func (this *MysqlDataContext) getKeyValueList(entity tiny.Entity, includeNilValu
 		if evalue.Field(i).Kind() == reflect.Ptr && !vi.IsNil() {
 			value = evalue.Field(i).Elem().Interface()
 		}
-		vStr := this.interpreter.TransValueToStr(value)
 
 		defineMap := this.interpreter.FormatDefine(defineStr)
+		_, isAES := defineMap[tagDefine.AES]
+		if isAES {
+			value = this.interpreter.AesEncrypt(value.(string), this.interpreter.AESKey)
+		}
+
+		vStr := this.interpreter.TransValueToStr(value)
 		dataType := defineMap[tagDefine.Type]
+
 		if dataType != nil && strings.Index(dataType.(string), "varchar") > 0 {
 			vStr = fmt.Sprintf("'%s'", vStr)
 		}
@@ -411,11 +418,6 @@ func (this *MysqlDataContext) getKeyValueList(entity tiny.Entity, includeNilValu
 				values = append(values, vStr)
 				fields = append(fields, fmt.Sprintf("`%s`", columnName))
 			}
-		}
-
-		_, isAES := defineMap[tagDefine.AES]
-		if isAES {
-			vStr = this.interpreter.AesEncrypt(vStr, this.interpreter.AESKey)
 		}
 
 		kvMap[fmt.Sprintf("%s", columnName)] = vStr

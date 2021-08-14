@@ -289,12 +289,10 @@ func (this *EntityObjectMysql) queryToDatas2(tableName string, rows map[int]map[
 	if len(aesList) > 0 {
 		for _, dataItem := range dataList {
 			for _, item := range aesList {
-				if dataItem[item] != nil {
-					v := dataItem[item].(string)
-					if v != "" {
-						dataItem[item] = this.interpreter.AesDecrypt(dataItem[item].(string), this.interpreter.AESKey)
-					}
+				if dataItem[item] == nil {
+					continue
 				}
+				dataItem[item] = this.interpreter.AesDecrypt(dataItem[item].(string), this.interpreter.AESKey)
 			}
 		}
 	}

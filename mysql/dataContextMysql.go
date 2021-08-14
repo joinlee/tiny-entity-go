@@ -390,7 +390,10 @@ func (this *MysqlDataContext) getKeyValueList(entity tiny.Entity, includeNilValu
 		defineMap := this.interpreter.FormatDefine(defineStr)
 		_, isAES := defineMap[tagDefine.AES]
 		if isAES {
-			value = this.interpreter.AesEncrypt(value.(string), this.interpreter.AESKey)
+			vv := this.interpreter.TransValueToStr(value)
+			if vv != "NULL" {
+				value = this.interpreter.AesEncrypt(vv, this.interpreter.AESKey)
+			}
 		}
 
 		vStr := this.interpreter.TransValueToStr(value)

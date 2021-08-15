@@ -392,7 +392,7 @@ func (this *MysqlDataContext) getKeyValueList(entity tiny.Entity, includeNilValu
 		if isAES {
 			vv := this.interpreter.TransValueToStr(value)
 			if vv != "NULL" {
-				value = this.interpreter.AesEncrypt(vv, this.interpreter.AESKey)
+				value = this.interpreter.AesEncrypt(value.(string), this.interpreter.AESKey)
 			}
 		}
 

@@ -292,6 +292,10 @@ func (this *EntityObjectMysql) queryToDatas2(tableName string, rows map[int]map[
 				if dataItem[item] == nil {
 					continue
 				}
+				vv := this.interpreter.TransValueToStr(dataItem[item])
+				if vv == "NULL" {
+					continue
+				}
 				dataItem[item] = this.interpreter.AesDecrypt(dataItem[item].(string), this.interpreter.AESKey)
 			}
 		}

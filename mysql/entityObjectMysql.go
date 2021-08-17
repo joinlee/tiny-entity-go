@@ -292,11 +292,20 @@ func (this *EntityObjectMysql) queryToDatas2(tableName string, rows map[int]map[
 				if dataItem[item] == nil {
 					continue
 				}
-				vv := this.interpreter.TransValueToStr(dataItem[item])
-				if vv == "NULL" {
-					continue
+
+				vType := reflect.TypeOf(dataItem[item])
+				if vType.Kind() == reflect.Ptr {
+					// 如果是指针类型
+					v := reflect.ValueOf(dataItem[item])
+					vv := v.Elem().Interface()
+					if vv == nil {
+						continue
+					}
+					dataItem[item] = this.interpreter.AesDecrypt(vv.(string), this.interpreter.AESKey)
+
+				} else {
+					dataItem[item] = this.interpreter.AesDecrypt(dataItem[item].(string), this.interpreter.AESKey)
 				}
-				dataItem[item] = this.interpreter.AesDecrypt(dataItem[item].(string), this.interpreter.AESKey)
 			}
 		}
 	}

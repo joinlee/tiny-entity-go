@@ -312,6 +312,7 @@ func (this *Interpreter) FormatQuerySetence(qs string, tableName string) string 
 }
 
 func (this *Interpreter) FormatSQL(sql string) string {
+	sql = strings.ReplaceAll(sql, "\\", "")
 	sql = strings.ReplaceAll(sql, "'", "\\'")
 	return sql
 }

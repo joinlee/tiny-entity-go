@@ -44,12 +44,12 @@ func (this *EntityObjectMysql) TableName() string {
 }
 
 func (this *EntityObjectMysql) And() tiny.IQueryObject {
-	this.interpreter.AddToWhere(" AND ", false)
+	this.interpreter.AddToWhere("AND", false)
 	return this
 }
 
 func (this *EntityObjectMysql) Or() tiny.IQueryObject {
-	this.interpreter.AddToWhere(" OR ", false)
+	this.interpreter.AddToWhere("OR", false)
 	return this
 }
 

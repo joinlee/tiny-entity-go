@@ -136,7 +136,7 @@ func (this *Interpreter) GetFinalSql(tableName string, entity Entity) string {
 			if wsql == "AND" || wsql == "OR" {
 				continue
 			}
-			if index >= len(this.whereStrs) {
+			if index >= len(this.whereStrs)-1 {
 				break
 			}
 			nextSql := this.whereStrs[index+1]

@@ -81,8 +81,13 @@ func (this *Interpreter) GetSelectFieldList(entity Entity, tableName string) []s
 	return list
 }
 
-func (this *Interpreter) AddToWhere(sql string) {
-	this.whereStrs = append(this.whereStrs, fmt.Sprintf("(%s)", sql))
+func (this *Interpreter) AddToWhere(sql string, brackets bool) {
+	if brackets {
+		this.whereStrs = append(this.whereStrs, fmt.Sprintf("(%s)", sql))
+	} else {
+		this.whereStrs = append(this.whereStrs, sql)
+	}
+
 }
 
 func (this *Interpreter) AddToOrdereBy(field string, isDesc bool) {

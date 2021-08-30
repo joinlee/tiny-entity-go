@@ -44,12 +44,12 @@ func (this *EntityObjectMysql) TableName() string {
 }
 
 func (this *EntityObjectMysql) And() tiny.IQueryObject {
-	this.interpreter.AddToWhere(" AND ")
+	this.interpreter.AddToWhere(" AND ", false)
 	return this
 }
 
 func (this *EntityObjectMysql) Or() tiny.IQueryObject {
-	this.interpreter.AddToWhere(" OR ")
+	this.interpreter.AddToWhere(" OR ", false)
 	return this
 }
 
@@ -89,7 +89,7 @@ func (this *EntityObjectMysql) inPartHandle(tableName string, felid string, valu
 		}
 
 		qs = qs + " ( " + strings.Join(vs, ",") + " )"
-		this.interpreter.AddToWhere(qs)
+		this.interpreter.AddToWhere(qs, true)
 	}
 	return this
 }
@@ -103,7 +103,7 @@ func (this *EntityObjectMysql) wherePartHandle(tableName string, queryStr interf
 		qs = strings.Replace(qs, "?", this.interpreter.TransValueToStr(value), 1)
 	}
 	qs = this.interpreter.FormatQuerySetence(qs, tableName)
-	this.interpreter.AddToWhere(qs)
+	this.interpreter.AddToWhere(qs, true)
 	return this
 }
 
@@ -144,7 +144,7 @@ func (this *EntityObjectMysql) Contains(field string, values interface{}) tiny.I
 		vList = append(vList, this.interpreter.TransValueToStr(item.Interface()))
 	}
 	sql := fmt.Sprintf("`%s`.`%s` IN (%s)", tableName, field, strings.Join(vList, ","))
-	this.interpreter.AddToWhere(sql)
+	this.interpreter.AddToWhere(sql, true)
 
 	return this
 }

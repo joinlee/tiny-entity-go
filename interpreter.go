@@ -132,10 +132,10 @@ func (this *Interpreter) GetFinalSql(tableName string, entity Entity) string {
 		// sql += " WHERE " + strings.Join(this.whereStrs, " AND ")
 		tmp := make([]string, 0)
 		for index, wsql := range this.whereStrs {
+			tmp = append(tmp, wsql)
 			if wsql == " AND " || wsql == " OR " {
 				continue
 			}
-			tmp = append(tmp, wsql)
 			if index < len(this.whereStrs)-1 {
 				tmp = append(tmp, " AND ")
 			}

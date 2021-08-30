@@ -43,6 +43,16 @@ func (this *EntityObjectMysql) TableName() string {
 	return this.tableName
 }
 
+func (this *EntityObjectMysql) And() tiny.IQueryObject {
+	this.interpreter.AddToWhere(" AND ")
+	return this
+}
+
+func (this *EntityObjectMysql) Or() tiny.IQueryObject {
+	this.interpreter.AddToWhere(" OR ")
+	return this
+}
+
 // 添加查询条件
 /* queryStr 查询语句， args 条件参数
 ex： ctx.User.Where("Id = ?", user.Id).Any() */

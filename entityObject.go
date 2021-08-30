@@ -16,6 +16,14 @@ type IEntityObject interface {
 
 type IQueryObject interface {
 	IResultQueryObject
+
+	// 添加where条件的AND 连接符，只能在where，In等条件查询方法之间
+	// 例如：ctx.User.Where().And().Where().Tolist()
+	And() IQueryObject
+	// 添加where条件的OR 连接符，只能在where，In等条件查询方法之间
+	// 例如：ctx.User.Where().OR().Where().Tolist()
+	Or() IQueryObject
+
 	// 添加查询条件
 	// queryStr 查询语句， args 条件参数
 	// 例： ctx.User.Where("Id = ?", user.Id).Any()

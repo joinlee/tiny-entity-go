@@ -129,7 +129,7 @@ func (this *EntityObjectMysql) GroupBy(field interface{}) tiny.IResultQueryObjec
 func (this *EntityObjectMysql) Select(fields ...interface{}) tiny.IResultQueryObject {
 	list := make([]string, 0)
 	for _, item := range fields {
-		list = append(list, this.interpreter.AddFieldTableName(item.(string), this.tableName))
+		list = append(list, fmt.Sprintf("%s AS %s_%s", this.interpreter.AddFieldTableName(item.(string), this.tableName), this.tableName, item.(string)))
 	}
 	this.interpreter.CleanSelectPart()
 	this.interpreter.AddToSelect(list)

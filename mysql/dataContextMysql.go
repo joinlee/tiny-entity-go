@@ -65,7 +65,7 @@ func (this *MysqlDataContext) Create(entity tiny.Entity) {
 	sql += fmt.Sprintf(" (%s) VALUES (%s);", strings.Join(fields, ","), strings.Join(values, ","))
 
 	if this.tx == nil {
-		this.submit(sql)
+		this.submit(sql, false)
 	} else {
 		this.querySentence = append(this.querySentence, sql)
 	}
@@ -89,7 +89,7 @@ func (this *MysqlDataContext) CreateBatch(entities []tiny.Entity) {
 		sql = fmt.Sprintf("%s (%s) VALUES %s;", sql, fieldPart, strings.Join(valueStrs, ","))
 
 		if this.tx == nil {
-			this.submit(sql)
+			this.submit(sql, false)
 		} else {
 			this.querySentence = append(this.querySentence, sql)
 		}
@@ -115,7 +115,7 @@ func (this *MysqlDataContext) Update(entity tiny.Entity) {
 	sql += strings.Join(vList, ",") + " WHERE `Id` = " + idValue + ";"
 
 	if this.tx == nil {
-		this.submit(sql)
+		this.submit(sql, false)
 	} else {
 		this.querySentence = append(this.querySentence, sql)
 	}
@@ -129,7 +129,7 @@ func (this *MysqlDataContext) Delete(entity tiny.Entity) {
 	sql := fmt.Sprintf("DELETE FROM `%s` WHERE `%s`.`Id`= %s ;", tableName, tableName, kvMap["Id"])
 
 	if this.tx == nil {
-		this.submit(sql)
+		this.submit(sql, false)
 	} else {
 		this.querySentence = append(this.querySentence, sql)
 	}
@@ -146,7 +146,7 @@ func (this *MysqlDataContext) DeleteWith(entity tiny.Entity, queryStr interface{
 	sql := fmt.Sprintf("DELETE FROM `%s` WHERE %s ;", tableName, qs)
 
 	if this.tx == nil {
-		this.submit(sql)
+		this.submit(sql, false)
 	} else {
 		this.querySentence = append(this.querySentence, sql)
 	}
@@ -264,14 +264,23 @@ func (this *MysqlDataContext) Commit() {
 	}
 }
 
-func (this *MysqlDataContext) submit(sqlStr string) {
-	rows, err := this.db.Query(sqlStr)
-	this.db.Close()
-	rows.Close()
-	if err != nil {
-		panic(err)
+func (this *MysqlDataContext) submit(sqlStr string, isQuery bool) {
+	if isQuery {
+		rows, err := this.db.Query(sqlStr)
+		this.db.Close()
+		rows.Close()
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		_, err := this.db.Exec(sqlStr)
+		if err != nil {
+			panic(err)
+		}
 	}
+
 	tiny.Log(sqlStr)
+
 }
 
 func (this *MysqlDataContext) cleanTransactionStatus() {

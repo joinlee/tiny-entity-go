@@ -148,6 +148,9 @@ func (this *Interpreter) GetFinalSql(tableName string, entity Entity) string {
 
 		sql += " WHERE " + strings.Join(tmp, " ")
 	}
+	if len(this.groupByStrs) > 0 {
+		sql += fmt.Sprintf(" GROUP BY %s", strings.Join(this.groupByStrs, ""))
+	}
 	if len(this.orderByStrs) > 0 {
 		sql += fmt.Sprintf(" ORDER BY %s", strings.Join(this.orderByStrs, ","))
 	}
@@ -158,9 +161,7 @@ func (this *Interpreter) GetFinalSql(tableName string, entity Entity) string {
 			sql += fmt.Sprintf(" LIMIT %d", this.limt["take"])
 		}
 	}
-	if len(this.groupByStrs) > 0 {
-		sql += fmt.Sprintf(" GROUP BY %s", strings.Join(this.groupByStrs, ""))
-	}
+
 	sql += ";"
 
 	return sql

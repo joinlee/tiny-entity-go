@@ -131,6 +131,7 @@ func (this *EntityObjectMysql) Select(fields ...interface{}) tiny.IResultQueryOb
 	for _, item := range fields {
 		list = append(list, this.interpreter.AddFieldTableName(item.(string), this.tableName))
 	}
+	this.interpreter.CleanSelectPart()
 	this.interpreter.AddToSelect(list)
 	return this
 }

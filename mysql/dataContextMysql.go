@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/joinlee/tiny-entity-go"
 	"github.com/joinlee/tiny-entity-go/tagDefine"
@@ -35,17 +34,8 @@ func NewMysqlDataContext(opt MysqlDataOption) *MysqlDataContext {
 		opt.DataBaseName,
 		opt.CharSet)
 	ctx.conStr = conStr
-	db, err := sql.Open("mysql", conStr)
-	if err != nil {
-		panic(err)
-	}
 
-	ctx.db = db
-
-	db.SetConnMaxLifetime(time.Minute * 3)
-	db.SetMaxOpenConns(opt.ConnectionLimit)
-	db.SetMaxIdleConns(20)
-	db.SetConnMaxIdleTime(time.Second * 60)
+	ctx.db = GetDB(conStr, opt.ConnectionLimit)
 
 	ctx.interpreter = &tiny.Interpreter{}
 	ctx.interpreter.AESKey = tiny.AESKey
@@ -187,11 +177,11 @@ func (this *MysqlDataContext) CreateTable(entity tiny.Entity) {
 	rows, err := this.db.Query(sqlStr)
 	rows.Close()
 	if err != nil {
-		this.db.Close()
+		// this.db.Close()
 		panic(err)
 	}
 
-	this.db.Close()
+	// this.db.Close()
 }
 
 func (this *MysqlDataContext) CreateTableSQL(entity tiny.Entity) string {
@@ -231,7 +221,7 @@ func (this *MysqlDataContext) Commit() {
 
 			if len(this.querySentence) == 0 {
 				this.tx.Rollback()
-				this.db.Close()
+				// this.db.Close()
 				this.cleanTransactionStatus()
 				return
 			}
@@ -254,7 +244,7 @@ func (this *MysqlDataContext) Commit() {
 	} else {
 		tiny.Log(strings.Join(this.querySentence, "\n"))
 		rows, err := this.db.Query(strings.Join(this.querySentence, "\n"))
-		this.db.Close()
+		// this.db.Close()
 		if rows != nil {
 			rows.Close()
 		}
@@ -267,7 +257,7 @@ func (this *MysqlDataContext) Commit() {
 func (this *MysqlDataContext) submit(sqlStr string, isQuery bool) {
 	if isQuery {
 		rows, err := this.db.Query(sqlStr)
-		this.db.Close()
+		// this.db.Close()
 		rows.Close()
 		if err != nil {
 			panic(err)
@@ -313,16 +303,17 @@ func (this *MysqlDataContext) Query(sqlStr string, noCommit bool) map[int]map[st
 		this.querySentence = append(this.querySentence, sqlStr)
 		return nil
 	} else {
-		db, err := sql.Open("mysql", this.conStr)
-		if err != nil {
-			db.Close()
-			panic(err)
-		}
+		// db, err := sql.Open("mysql", this.conStr)
+		// if err != nil {
+		// 	db.Close()
+		// 	panic(err)
+		// }
 
 		tiny.Log(sqlStr)
-		rows, err := db.Query(sqlStr)
+		rows, err := this.db.Query(sqlStr)
 		if err != nil {
-			db.Close()
+			// db.Close()
+			rows.Close()
 			panic(err)
 		}
 
@@ -356,7 +347,7 @@ func (this *MysqlDataContext) Query(sqlStr string, noCommit bool) map[int]map[st
 		}
 
 		rows.Close()
-		db.Close()
+		// db.Close()
 		return result
 	}
 }

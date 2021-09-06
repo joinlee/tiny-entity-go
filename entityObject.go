@@ -38,11 +38,6 @@ type IQueryObject interface {
 	// 指定表名称的In 条件语句
 	ContainsWith(entity Entity, felid string, values interface{}) IQueryObject
 
-	// 添加IN 条件语句到查询条件
-	// In(felid string, values interface{}) IQueryObject
-	// // 指定表名称的In 条件语句
-	// InWith(entity Entity, felid string, values interface{}) IQueryObject
-
 	//对指定字段进行顺序排序
 	OrderBy(fields interface{}) IQueryObject
 	//对指定字段进行倒序排序

@@ -69,11 +69,11 @@ func (this *EntityObjectMysql) WhereWith(entity tiny.Entity, queryStr interface{
 	return this.wherePartHandle(tableName, queryStr, args)
 }
 
-func (this *EntityObjectMysql) In(felid string, values interface{}) tiny.IQueryObject {
+func (this *EntityObjectMysql) Contains(felid string, values interface{}) tiny.IQueryObject {
 	return this.inPartHandle(this.tableName, felid, values)
 }
 
-func (this *EntityObjectMysql) InWith(entity tiny.Entity, felid string, values interface{}) tiny.IQueryObject {
+func (this *EntityObjectMysql) ContainsWith(entity tiny.Entity, felid string, values interface{}) tiny.IQueryObject {
 	tableName := reflect.TypeOf(entity).Elem().Name()
 	return this.inPartHandle(tableName, felid, values)
 }
@@ -136,20 +136,6 @@ func (this *EntityObjectMysql) Select(fields ...interface{}) tiny.IResultQueryOb
 	return this
 }
 
-func (this *EntityObjectMysql) Contains(field string, values interface{}) tiny.IResultQueryObject {
-	tableName := this.tableName
-	vList := make([]string, 0)
-	refV := reflect.ValueOf(values)
-	for i := 0; i < refV.Len(); i++ {
-		item := refV.Index(i)
-		vList = append(vList, this.interpreter.TransValueToStr(item.Interface()))
-	}
-	sql := fmt.Sprintf("`%s`.`%s` IN (%s)", tableName, field, strings.Join(vList, ","))
-	this.interpreter.AddToWhere(sql, true)
-
-	return this
-}
-
 func (this *EntityObjectMysql) Take(count int) tiny.ITakeChildQueryObject {
 	this.interpreter.AddToLimt("take", count)
 	return this
@@ -201,11 +187,28 @@ func (this *EntityObjectMysql) Min() float64 {
 	return 0
 }
 func (this *EntityObjectMysql) Count() int {
+	// this.interpreter.CleanSelectPart()
+	// this.interpreter.AddToSelect([]string{fmt.Sprintf("COUNT(`%s`.`Id`)", this.tableName)})
+	// sqlStr := this.interpreter.GetFinalSql(this.tableName, nil)
+	// rows := this.ctx.Query(sqlStr, false)
+	// // fmt.Println("sql result First:", rows, len(rows))
+	// result := 0
+	// for _, rowData := range rows {
+	// 	for _, cellData := range rowData {
+	// 		result, _ = strconv.Atoi(cellData)
+	// 	}
+	// }
+	// this.interpreter.Clean()
+
+	return this.CountArgs(fmt.Sprintf("`%s`.`Id`", this.tableName))
+}
+
+func (this *EntityObjectMysql) CountArgs(field string) int {
 	this.interpreter.CleanSelectPart()
-	this.interpreter.AddToSelect([]string{fmt.Sprintf("COUNT(`%s`.`Id`)", this.tableName)})
+	this.interpreter.AddToSelect([]string{fmt.Sprintf("COUNT(%s)", field)})
 	sqlStr := this.interpreter.GetFinalSql(this.tableName, nil)
 	rows := this.ctx.Query(sqlStr, false)
-	fmt.Println("sql result First:", rows, len(rows))
+
 	result := 0
 	for _, rowData := range rows {
 		for _, cellData := range rowData {
@@ -215,6 +218,7 @@ func (this *EntityObjectMysql) Count() int {
 	this.interpreter.Clean()
 	return result
 }
+
 func (this *EntityObjectMysql) Any() bool {
 	count := this.Count()
 	return count > 0

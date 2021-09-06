@@ -33,10 +33,16 @@ type IQueryObject interface {
 	   entity 表示查询外键表的条件
 	   ex： ctx.User.WhereWith(ctx.Account, "Id = ?", user.Id).Any() */
 	WhereWith(entity Entity, queryStr interface{}, args ...interface{}) IQueryObject
-	// 添加IN 条件语句到查询条件
-	In(felid string, values interface{}) IQueryObject
+	//查询字段包含的值
+	Contains(field string, values interface{}) IQueryObject
 	// 指定表名称的In 条件语句
-	InWith(entity Entity, felid string, values interface{}) IQueryObject
+	ContainsWith(entity Entity, felid string, values interface{}) IQueryObject
+
+	// 添加IN 条件语句到查询条件
+	// In(felid string, values interface{}) IQueryObject
+	// // 指定表名称的In 条件语句
+	// InWith(entity Entity, felid string, values interface{}) IQueryObject
+
 	//对指定字段进行顺序排序
 	OrderBy(fields interface{}) IQueryObject
 	//对指定字段进行倒序排序
@@ -46,8 +52,6 @@ type IQueryObject interface {
 	//对指定字段进行分组
 	GroupBy(fields interface{}) IResultQueryObject
 	Select(fields ...interface{}) IResultQueryObject
-	//查询字段包含的值
-	Contains(field string, values interface{}) IResultQueryObject
 
 	// 需要获取的数据行数
 	Take(count int) ITakeChildQueryObject
@@ -67,7 +71,10 @@ type IResultQueryObject interface {
 	IAssembleResultQuery
 	Max() float64
 	Min() float64
+	//查询结果数量
 	Count() int
+	//带有distinct的count函数
+	CountArgs(field string) int
 	// 查询数据库，并返回是否存在结果
 	Any() bool
 	// 查询数据库，并返回第一个结果

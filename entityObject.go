@@ -73,7 +73,8 @@ type IResultQueryObject interface {
 	Min() float64
 	//查询结果数量
 	Count() int
-	//带有distinct的count函数
+	//带有参数的Count
+	// 例如： countQueryObj.CountArgs("DISTINCT(`Visit`.`Id`)")
 	CountArgs(field string) int
 	// 查询数据库，并返回是否存在结果
 	Any() bool

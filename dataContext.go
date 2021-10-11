@@ -7,9 +7,17 @@ type IDataContext interface {
 	CreateBatch(entities []Entity)
 	//更新数据到数据库
 	Update(entity Entity)
+	//通过指定条件更新数据表中的数据
+	//entity IEntity 实体对象
+	//fields []string 需要更新的字段列表，传入参数例子：[ Username = 'lkc', age = 18 ]
+	//queryStr string 条件参数 例子：gender = 'male'
+	UpdateWith(entity Entity, fields interface{}, queryStr interface{})
 	//通过实体Id 删除数据
 	Delete(entity Entity)
 	//通过指定条件删除数据
+	//entity 实体对象
+	//queryStr 条件参数 例子：gender = 'male'
+	// args 参数值
 	DeleteWith(entity Entity, queryStr interface{}, args ...interface{})
 	//开起事务
 	BeginTranscation()

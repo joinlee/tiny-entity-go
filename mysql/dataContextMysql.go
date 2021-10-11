@@ -111,6 +111,25 @@ func (this *MysqlDataContext) Update(entity tiny.Entity) {
 	}
 }
 
+//批量更新数据表中的数据
+//entity 实体对象
+//fields 需要更新的字段列表，传入参数例子：[ Username = 'lkc', age = 18 ]
+//queryStr 条件参数 例子：gender = 'male'
+func (this *MysqlDataContext) UpdateWith(entity tiny.Entity, fields interface{}, queryStr interface{}) {
+	fds := fields.([]string)
+	qs := queryStr.(string)
+
+	tableName := reflect.TypeOf(entity).Elem().Name()
+
+	sql := fmt.Sprintf("UPDATE `%s` SET %s WHERE %s ;", tableName, strings.Join(fds, ","), qs)
+
+	if this.tx == nil {
+		this.submit(sql, false)
+	} else {
+		this.querySentence = append(this.querySentence, sql)
+	}
+}
+
 //通过实体Id 删除数据
 func (this *MysqlDataContext) Delete(entity tiny.Entity) {
 	tableName := reflect.TypeOf(entity).Elem().Name()

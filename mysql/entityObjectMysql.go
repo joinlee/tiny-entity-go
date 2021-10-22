@@ -275,10 +275,17 @@ func (this *EntityObjectMysql) queryToDatas2(tableName string, rows map[int]map[
 
 	dataList := this.formatToData(tableName, rows)
 
+	mappingDatasTmp := make(map[string][]map[string]interface{})
+
 	if len(mappingList) > 0 {
 		for _, dataItem := range dataList {
 			for mappingTable, mtype := range mappingList {
-				mappingDatas := this.queryToDatas2(mappingTable, rows)
+				mappingDatas, has := mappingDatasTmp[mappingTable]
+				if !has {
+					mappingDatas = this.queryToDatas2(mappingTable, rows)
+					mappingDatasTmp[mappingTable] = mappingDatas
+				}
+
 				joinObj := this.joinEntities[mappingTable]
 
 				mkeyValue := reflect.ValueOf(dataItem[joinObj.Mkey])

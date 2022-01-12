@@ -35,12 +35,18 @@ func NewCodeGenerator(opt CodeGeneratorOptions) *CodeGenerator {
 	return obj
 }
 
-func (this *CodeGenerator) GenerateCtxFile() {
-	rootPath := this.getRootPath()
+func (this *CodeGenerator) getCtxFileName() string {
 	fnames := strings.Split(this.options.CtxFileName, "/")
 	fName := fnames[len(fnames)-1]
 
 	ctxStructName := Capitalize(fName)
+
+	return ctxStructName
+}
+
+func (this *CodeGenerator) GenerateCtxFile() {
+	rootPath := this.getRootPath()
+	ctxStructName := this.getCtxFileName()
 	modelNames := this.LoadEntityModes()
 
 	content := fmt.Sprintf("package %s \n", this.options.PackageName)
@@ -113,7 +119,8 @@ func (this *CodeGenerator) LoadEntityModes() []string {
 func (this *CodeGenerator) AutoMigration(ctx IDataContext) {
 	this.ctx = ctx
 	var logReport MigrationLog
-	fileStr := ReadFile(fmt.Sprintf("%s/migrationLogs.json", this.getRootPath()))
+	ctxFileName := this.getCtxFileName()
+	fileStr := ReadFile(fmt.Sprintf("%s/%s_migrationLogs.json", this.getRootPath(), ctxFileName))
 	if fileStr != "" {
 		json.Unmarshal([]byte(fileStr), &logReport)
 		// 已经有历史的迁移记录
@@ -162,8 +169,8 @@ func (this *CodeGenerator) AutoMigration(ctx IDataContext) {
 			ctx.Query(strings.Join(sqlStrs, ""), true)
 		})
 
-		WriteFile(JsonStringify(logReport), "migrationLogs.json")
-		WriteFile(JsonStringify(sqlReports), "migrationSqls.json")
+		WriteFile(JsonStringify(logReport), fmt.Sprintf("%s_migrationLogs.json", ctxFileName))
+		WriteFile(JsonStringify(sqlReports), fmt.Sprintf("%s_migrationSqls.json", ctxFileName))
 	}
 
 	fmt.Println("AutoMigration Finish!!!")

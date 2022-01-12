@@ -84,7 +84,7 @@ func (this *CodeGenerator) GenerateCtxFile() {
 
 	content += "} \n"
 
-	content += "func (this *TinyDataContext) GetEntityList() map[string]tiny.IEntityObject { \n"
+	content += fmt.Sprintf("func (this *%s) GetEntityList() map[string]tiny.IEntityObject { \n", ctxStructName)
 	content += "list := make(map[string]tiny.IEntityObject) \n"
 	for _, modelName := range modelNames {
 		content += fmt.Sprintf("list[\"%s\"] = this.%s \n", modelName, modelName)

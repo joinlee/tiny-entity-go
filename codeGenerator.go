@@ -37,7 +37,10 @@ func NewCodeGenerator(opt CodeGeneratorOptions) *CodeGenerator {
 
 func (this *CodeGenerator) GenerateCtxFile() {
 	rootPath := this.getRootPath()
-	ctxStructName := Capitalize(this.options.CtxFileName)
+	fnames := strings.Split(this.options.CtxFileName, "/")
+	fName := fnames[len(fnames)-1]
+
+	ctxStructName := Capitalize(fName)
 	modelNames := this.LoadEntityModes()
 
 	content := fmt.Sprintf("package %s \n", this.options.PackageName)

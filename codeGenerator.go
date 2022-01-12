@@ -88,7 +88,7 @@ func (this *CodeGenerator) GenerateCtxFile() {
 	}
 	content += "return list } \n"
 
-	WriteFile(content, rootPath+"/domain/"+this.options.CtxFileName+".go")
+	WriteFile(content, rootPath+"/"+this.options.CtxFileName+".go")
 }
 
 func (this *CodeGenerator) LoadEntityModes() []string {

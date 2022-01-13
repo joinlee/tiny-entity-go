@@ -25,6 +25,7 @@ func initConnectPoolMysql() {
 	if connectPool == nil {
 		fmt.Println("initConnectPoolMysql +++++++++++")
 		connectPool = new(connectPoolMysql)
+		connectPool.dbMap = make(map[string]*sql.DB, 0)
 	}
 }
 

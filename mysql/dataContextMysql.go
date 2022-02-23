@@ -57,7 +57,8 @@ func (this *MysqlDataContext) Create(entity tiny.Entity) {
 	if this.tx == nil {
 		this.submit(sql, false)
 	} else {
-		this.querySentence = append(this.querySentence, sql)
+		// this.querySentence = append(this.querySentence, sql)
+		this.tx.Exec(sql)
 	}
 }
 
@@ -81,7 +82,8 @@ func (this *MysqlDataContext) CreateBatch(entities []tiny.Entity) {
 		if this.tx == nil {
 			this.submit(sql, false)
 		} else {
-			this.querySentence = append(this.querySentence, sql)
+			// this.querySentence = append(this.querySentence, sql)
+			this.tx.Exec(sql)
 		}
 	}
 
@@ -107,7 +109,8 @@ func (this *MysqlDataContext) Update(entity tiny.Entity) {
 	if this.tx == nil {
 		this.submit(sql, false)
 	} else {
-		this.querySentence = append(this.querySentence, sql)
+		// this.querySentence = append(this.querySentence, sql)
+		this.tx.Exec(sql)
 	}
 }
 
@@ -126,7 +129,8 @@ func (this *MysqlDataContext) UpdateWith(entity tiny.Entity, fields interface{},
 	if this.tx == nil {
 		this.submit(sql, false)
 	} else {
-		this.querySentence = append(this.querySentence, sql)
+		// this.querySentence = append(this.querySentence, sql)
+		this.tx.Exec(sql)
 	}
 }
 
@@ -140,7 +144,8 @@ func (this *MysqlDataContext) Delete(entity tiny.Entity) {
 	if this.tx == nil {
 		this.submit(sql, false)
 	} else {
-		this.querySentence = append(this.querySentence, sql)
+		// this.querySentence = append(this.querySentence, sql)
+		this.tx.Exec(sql)
 	}
 }
 
@@ -157,7 +162,8 @@ func (this *MysqlDataContext) DeleteWith(entity tiny.Entity, queryStr interface{
 	if this.tx == nil {
 		this.submit(sql, false)
 	} else {
-		this.querySentence = append(this.querySentence, sql)
+		// this.querySentence = append(this.querySentence, sql)
+		this.tx.Exec(sql)
 	}
 }
 
@@ -196,11 +202,8 @@ func (this *MysqlDataContext) CreateTable(entity tiny.Entity) {
 	rows, err := this.db.Query(sqlStr)
 	rows.Close()
 	if err != nil {
-		// this.db.Close()
 		panic(err)
 	}
-
-	// this.db.Close()
 }
 
 func (this *MysqlDataContext) CreateTableSQL(entity tiny.Entity) string {
@@ -233,40 +236,27 @@ func (this *MysqlDataContext) DropTableSQL(tableName string) string {
 }
 
 func (this *MysqlDataContext) Commit() {
-	if this.tx != nil {
-		if this.tranCount > 1 {
-			this.tranCount--
-		} else if this.tranCount == 1 {
+	if this.tranCount > 1 {
+		this.tranCount--
+	} else if this.tranCount == 1 {
+		// if len(this.querySentence) == 0 {
+		// 	this.tx.Rollback()
+		// 	// this.db.Close()
+		// 	this.cleanTransactionStatus()
+		// 	return
+		// }
 
-			if len(this.querySentence) == 0 {
-				this.tx.Rollback()
-				// this.db.Close()
-				this.cleanTransactionStatus()
-				return
-			}
+		tiny.Log(strings.Join(this.querySentence, ""))
+		// rows, err := this.tx.Query(strings.Join(this.querySentence, ""))
+		// if rows != nil {
+		// 	rows.Close()
+		// }
 
-			tiny.Log(strings.Join(this.querySentence, ""))
-			rows, err := this.tx.Query(strings.Join(this.querySentence, ""))
-			if rows != nil {
-				rows.Close()
-			}
-
-			if err != nil {
-				panic(err)
-			}
-			err = this.tx.Commit()
-			this.cleanTransactionStatus()
-			if err != nil {
-				panic(err)
-			}
-		}
-	} else {
-		tiny.Log(strings.Join(this.querySentence, "\n"))
-		rows, err := this.db.Query(strings.Join(this.querySentence, "\n"))
-		// this.db.Close()
-		if rows != nil {
-			rows.Close()
-		}
+		// if err != nil {
+		// 	panic(err)
+		// }
+		err := this.tx.Commit()
+		this.cleanTransactionStatus()
 		if err != nil {
 			panic(err)
 		}
@@ -276,7 +266,6 @@ func (this *MysqlDataContext) Commit() {
 func (this *MysqlDataContext) submit(sqlStr string, isQuery bool) {
 	if isQuery {
 		rows, err := this.db.Query(sqlStr)
-		// this.db.Close()
 		rows.Close()
 		if err != nil {
 			panic(err)
@@ -289,7 +278,6 @@ func (this *MysqlDataContext) submit(sqlStr string, isQuery bool) {
 	}
 
 	tiny.Log(sqlStr)
-
 }
 
 func (this *MysqlDataContext) cleanTransactionStatus() {
@@ -318,57 +306,53 @@ func (this *MysqlDataContext) RollBack() {
 }
 
 func (this *MysqlDataContext) Query(sqlStr string, noCommit bool) map[int]map[string]string {
-	if noCommit {
-		this.querySentence = append(this.querySentence, sqlStr)
-		return nil
+	var rows *sql.Rows
+	var err error
+	tiny.Log(sqlStr)
+	if this.tx != nil {
+		// this.querySentence = append(this.querySentence, sqlStr)
+		rows, err = this.tx.Query(sqlStr)
 	} else {
-		// db, err := sql.Open("mysql", this.conStr)
-		// if err != nil {
-		// 	db.Close()
-		// 	panic(err)
-		// }
-
-		tiny.Log(sqlStr)
-		rows, err := this.db.Query(sqlStr)
-		if err != nil {
-			// db.Close()
-			rows.Close()
-			panic(err)
-		}
-
-		//返回所有列
-		cols, _ := rows.Columns()
-		//这里表示一行所有列的值，用[]byte表示
-		vals := make([][]byte, len(cols))
-		//这里表示一行填充数据
-		scans := make([]interface{}, len(cols))
-		//这里scans引用vals，把数据填充到[]byte里
-		for k := range vals {
-			scans[k] = &vals[k]
-		}
-		i := 0
-		result := make(map[int]map[string]string)
-
-		for rows.Next() {
-			//填充数据
-			rows.Scan(scans...)
-			//每行数据
-			row := make(map[string]string)
-			//把vals中的数据复制到row中
-			for k, v := range vals {
-				key := cols[k]
-				//这里把[]byte数据转成string
-				row[key] = string(v)
-			}
-			//放入结果集
-			result[i] = row
-			i++
-		}
-
-		rows.Close()
-		// db.Close()
-		return result
+		rows, err = this.db.Query(sqlStr)
 	}
+
+	if err != nil {
+		rows.Close()
+		panic(err)
+	}
+
+	//返回所有列
+	cols, _ := rows.Columns()
+	//这里表示一行所有列的值，用[]byte表示
+	vals := make([][]byte, len(cols))
+	//这里表示一行填充数据
+	scans := make([]interface{}, len(cols))
+	//这里scans引用vals，把数据填充到[]byte里
+	for k := range vals {
+		scans[k] = &vals[k]
+	}
+	i := 0
+	result := make(map[int]map[string]string)
+
+	for rows.Next() {
+		//填充数据
+		rows.Scan(scans...)
+		//每行数据
+		row := make(map[string]string)
+		//把vals中的数据复制到row中
+		for k, v := range vals {
+			key := cols[k]
+			//这里把[]byte数据转成string
+			row[key] = string(v)
+		}
+		//放入结果集
+		result[i] = row
+		i++
+	}
+
+	rows.Close()
+
+	return result
 }
 
 func (this *MysqlDataContext) RegistModel(entity tiny.Entity) {

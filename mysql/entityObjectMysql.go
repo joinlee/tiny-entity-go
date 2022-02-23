@@ -187,19 +187,6 @@ func (this *EntityObjectMysql) Min() float64 {
 	return 0
 }
 func (this *EntityObjectMysql) Count() int {
-	// this.interpreter.CleanSelectPart()
-	// this.interpreter.AddToSelect([]string{fmt.Sprintf("COUNT(`%s`.`Id`)", this.tableName)})
-	// sqlStr := this.interpreter.GetFinalSql(this.tableName, nil)
-	// rows := this.ctx.Query(sqlStr, false)
-	// // fmt.Println("sql result First:", rows, len(rows))
-	// result := 0
-	// for _, rowData := range rows {
-	// 	for _, cellData := range rowData {
-	// 		result, _ = strconv.Atoi(cellData)
-	// 	}
-	// }
-	// this.interpreter.Clean()
-
 	return this.CountArgs(fmt.Sprintf("`%s`.`Id`", this.tableName))
 }
 

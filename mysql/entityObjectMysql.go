@@ -29,18 +29,22 @@ func NewEntityObjectMysql(ctx *MysqlDataContext, tableName string) *EntityObject
 	entity := &EntityObjectMysql{}
 	entity.ctx = ctx
 	entity.tableName = tableName
-	entity.initEntityObj(tableName)
+	entity.InitEntityObj(tableName)
 
 	return entity
 }
 
-func (this *EntityObjectMysql) initEntityObj(tableName string) {
+func (this *EntityObjectMysql) InitEntityObj(tableName string) {
 	this.interpreter = tiny.NewInterpreter(tableName)
 	this.joinEntities = make(map[string]JoinEntityItem)
 }
 
 func (this *EntityObjectMysql) TableName() string {
 	return this.tableName
+}
+
+func (this *EntityObjectMysql) GetIQueryObject() tiny.IQueryObject {
+	return this
 }
 
 func (this *EntityObjectMysql) And() tiny.IQueryObject {
@@ -229,7 +233,7 @@ func (this *EntityObjectMysql) First(entity interface{}) (bool, *tiny.Empty) {
 		isNull = true
 	}
 
-	this.initEntityObj(this.tableName)
+	this.InitEntityObj(this.tableName)
 	this.interpreter.Clean()
 
 	if isNull {
@@ -251,7 +255,7 @@ func (this *EntityObjectMysql) ToList(list interface{}) {
 
 	jsonStr := tiny.JsonStringify(dataList)
 	json.Unmarshal([]byte(jsonStr), list)
-	this.initEntityObj(this.tableName)
+	this.InitEntityObj(this.tableName)
 	this.interpreter.Clean()
 }
 

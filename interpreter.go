@@ -39,23 +39,23 @@ func NewInterpreter(tableName string) *Interpreter {
 	return interpreter
 }
 
-func (this *Interpreter) AddToSelect(fields []string) {
-	this.selectStrs = append(this.selectStrs, strings.Join(fields, ","))
+func (t *Interpreter) AddToSelect(fields []string) {
+	t.selectStrs = append(t.selectStrs, strings.Join(fields, ","))
 }
 
-func (this *Interpreter) CleanSelectPart() {
-	this.selectStrs = make([]string, 0)
+func (t *Interpreter) CleanSelectPart() {
+	t.selectStrs = make([]string, 0)
 }
-func (this *Interpreter) Clean() {
-	this.whereStrs = make([]string, 0)
-	this.selectStrs = make([]string, 0)
-	this.groupByStrs = make([]string, 0)
-	this.orderByStrs = make([]string, 0)
-	this.limt = make(map[string]int)
-	this.joinOnPart = make([]string, 0)
+func (t *Interpreter) Clean() {
+	t.whereStrs = make([]string, 0)
+	t.selectStrs = make([]string, 0)
+	t.groupByStrs = make([]string, 0)
+	t.orderByStrs = make([]string, 0)
+	t.limt = make(map[string]int)
+	t.joinOnPart = make([]string, 0)
 }
 
-func (this *Interpreter) GetSelectFieldList(entity Entity, tableName string) []string {
+func (t *Interpreter) GetSelectFieldList(entity Entity, tableName string) []string {
 	list := make([]string, 0)
 	etype := reflect.TypeOf(entity)
 	if etype.Kind() == reflect.Ptr {
@@ -64,82 +64,82 @@ func (this *Interpreter) GetSelectFieldList(entity Entity, tableName string) []s
 	for i := 0; i < etype.NumField(); i++ {
 		fd := etype.Field(i)
 		cName := fd.Name
-		defineStr, has := this.GetFieldDefineStr(fd)
+		defineStr, has := t.GetFieldDefineStr(fd)
 		if !has {
 			continue
 		}
 
-		defineMap := this.FormatDefine(defineStr)
+		defineMap := t.FormatDefine(defineStr)
 		_, has = defineMap[tagDefine.Mapping]
 		if has {
 			continue
 		}
 
-		list = append(list, fmt.Sprintf("%s AS %s_%s", this.AddFieldTableName(cName, tableName), tableName, cName))
+		list = append(list, fmt.Sprintf("%s AS %s_%s", t.AddFieldTableName(cName, tableName), tableName, cName))
 	}
 
 	return list
 }
 
-func (this *Interpreter) AddToWhere(sql string, brackets bool) {
+func (t *Interpreter) AddToWhere(sql string, brackets bool) {
 	if brackets {
-		this.whereStrs = append(this.whereStrs, fmt.Sprintf("(%s)", sql))
+		t.whereStrs = append(t.whereStrs, fmt.Sprintf("(%s)", sql))
 	} else {
-		this.whereStrs = append(this.whereStrs, sql)
+		t.whereStrs = append(t.whereStrs, sql)
 	}
 
 }
 
-func (this *Interpreter) AddToOrdereBy(field string, isDesc bool) {
-	field = this.AddFieldTableName(field, this.tableName)
+func (t *Interpreter) AddToOrdereBy(field string, isDesc bool) {
+	field = t.AddFieldTableName(field, t.tableName)
 	if isDesc {
 		field += " DESC"
 	}
-	this.orderByStrs = append(this.orderByStrs, field)
+	t.orderByStrs = append(t.orderByStrs, field)
 }
 
-func (this *Interpreter) AddToGroupBy(field string) {
-	field = this.AddFieldTableName(field, this.tableName)
-	this.groupByStrs = append(this.groupByStrs, field)
+func (t *Interpreter) AddToGroupBy(field string) {
+	field = t.AddFieldTableName(field, t.tableName)
+	t.groupByStrs = append(t.groupByStrs, field)
 }
 
-func (this *Interpreter) AddToLimt(key string, value int) {
-	this.limt[key] = value
+func (t *Interpreter) AddToLimt(key string, value int) {
+	t.limt[key] = value
 }
 
-func (this *Interpreter) AddToJoinOn(sqlStr string) {
-	this.joinOnPart = append(this.joinOnPart, sqlStr)
+func (t *Interpreter) AddToJoinOn(sqlStr string) {
+	t.joinOnPart = append(t.joinOnPart, sqlStr)
 }
 
-func (this *Interpreter) AddFieldTableName(field interface{}, tableName string) string {
+func (t *Interpreter) AddFieldTableName(field interface{}, tableName string) string {
 	return fmt.Sprintf("`%s`.`%s`", tableName, field)
 }
 
-func (this *Interpreter) GetFinalSql(tableName string, entity Entity) string {
+func (t *Interpreter) GetFinalSql(tableName string, entity Entity) string {
 	var sql string
 	sql += "SELECT "
-	if len(this.selectStrs) == 0 {
-		fields := this.GetSelectFieldList(entity, tableName)
-		this.AddToSelect(fields)
+	if len(t.selectStrs) == 0 {
+		fields := t.GetSelectFieldList(entity, tableName)
+		t.AddToSelect(fields)
 	}
-	sql += strings.Join(this.selectStrs, ",")
+	sql += strings.Join(t.selectStrs, ",")
 	sql += " FROM `" + tableName + "`"
-	if len(this.joinOnPart) > 0 {
-		sql += strings.Join(this.joinOnPart, " ")
+	if len(t.joinOnPart) > 0 {
+		sql += strings.Join(t.joinOnPart, " ")
 	}
 
-	if len(this.whereStrs) > 0 {
-		// sql += " WHERE " + strings.Join(this.whereStrs, " AND ")
+	if len(t.whereStrs) > 0 {
+		// sql += " WHERE " + strings.Join(t.whereStrs, " AND ")
 		tmp := make([]string, 0)
-		for index, wsql := range this.whereStrs {
+		for index, wsql := range t.whereStrs {
 			tmp = append(tmp, wsql)
 			if wsql == "AND" || wsql == "OR" {
 				continue
 			}
-			if index >= len(this.whereStrs)-1 {
+			if index >= len(t.whereStrs)-1 {
 				break
 			}
-			nextSql := this.whereStrs[index+1]
+			nextSql := t.whereStrs[index+1]
 			if nextSql == "AND" || nextSql == "OR" {
 				continue
 			}
@@ -148,17 +148,17 @@ func (this *Interpreter) GetFinalSql(tableName string, entity Entity) string {
 
 		sql += " WHERE " + strings.Join(tmp, " ")
 	}
-	if len(this.groupByStrs) > 0 {
-		sql += fmt.Sprintf(" GROUP BY %s", strings.Join(this.groupByStrs, ""))
+	if len(t.groupByStrs) > 0 {
+		sql += fmt.Sprintf(" GROUP BY %s", strings.Join(t.groupByStrs, ""))
 	}
-	if len(this.orderByStrs) > 0 {
-		sql += fmt.Sprintf(" ORDER BY %s", strings.Join(this.orderByStrs, ","))
+	if len(t.orderByStrs) > 0 {
+		sql += fmt.Sprintf(" ORDER BY %s", strings.Join(t.orderByStrs, ","))
 	}
-	if len(this.limt) > 0 {
-		if len(this.limt) > 1 {
-			sql += fmt.Sprintf(" LIMIT %d,%d", this.limt["skip"], this.limt["take"])
+	if len(t.limt) > 0 {
+		if len(t.limt) > 1 {
+			sql += fmt.Sprintf(" LIMIT %d,%d", t.limt["skip"], t.limt["take"])
 		} else {
-			sql += fmt.Sprintf(" LIMIT %d", this.limt["take"])
+			sql += fmt.Sprintf(" LIMIT %d", t.limt["take"])
 		}
 	}
 
@@ -167,16 +167,16 @@ func (this *Interpreter) GetFinalSql(tableName string, entity Entity) string {
 	return sql
 }
 
-func (this *Interpreter) TransValueToStr(v interface{}) string {
+func (t *Interpreter) TransValueToStr(v interface{}) string {
 	valueType := reflect.TypeOf(v)
 	vtStr := valueType.Name()
 
-	return this.TransValueToStrByType(v, vtStr)
+	return t.TransValueToStrByType(v, vtStr)
 }
-func (this *Interpreter) TransValueToStrByType(v interface{}, typeName string) string {
+func (t *Interpreter) TransValueToStrByType(v interface{}, typeName string) string {
 	result := "NULL"
 	if typeName == "string" {
-		result = "'" + this.FormatSQL(fmt.Sprintf("%s", v)) + "'"
+		result = "'" + t.FormatSQL(fmt.Sprintf("%s", v)) + "'"
 	} else if typeName == "int" || typeName == "int64" {
 		result = fmt.Sprintf("%d", v)
 	} else if typeName == "bool" {
@@ -185,7 +185,7 @@ func (this *Interpreter) TransValueToStrByType(v interface{}, typeName string) s
 	return result
 }
 
-func (this *Interpreter) ConverNilValue(fieldType string, value string) interface{} {
+func (t *Interpreter) ConverNilValue(fieldType string, value string) interface{} {
 	if fieldType == "*int" || fieldType == "*int64" {
 		v, _ := strconv.Atoi(value)
 		if value == "" {
@@ -213,7 +213,7 @@ func (this *Interpreter) ConverNilValue(fieldType string, value string) interfac
 	return value
 }
 
-func (this *Interpreter) FormatDefine(defineStr string) map[string]interface{} {
+func (t *Interpreter) FormatDefine(defineStr string) map[string]interface{} {
 	list := strings.Split(defineStr, ";")
 	keyMap := make(map[string]interface{})
 	for _, item := range list {
@@ -229,21 +229,21 @@ func (this *Interpreter) FormatDefine(defineStr string) map[string]interface{} {
 	return keyMap
 }
 
-func (this *Interpreter) GetFieldDefineStr(field reflect.StructField) (string, bool) {
+func (t *Interpreter) GetFieldDefineStr(field reflect.StructField) (string, bool) {
 	defineStr, has := field.Tag.Lookup("tiny")
 	return defineStr, has
 }
 
-func (this *Interpreter) GetEntityFieldsDefineInfo(entity interface{}) map[string]map[string]interface{} {
+func (t *Interpreter) GetEntityFieldsDefineInfo(entity interface{}) map[string]map[string]interface{} {
 	result := make(map[string]map[string]interface{})
 	et := reflect.TypeOf(entity).Elem()
 	for i := 0; i < et.NumField(); i++ {
 		fd := et.Field(i)
-		defineStr, has := this.GetFieldDefineStr(fd)
+		defineStr, has := t.GetFieldDefineStr(fd)
 		if !has {
 			continue
 		}
-		defineMap := this.FormatDefine(defineStr)
+		defineMap := t.FormatDefine(defineStr)
 
 		_, isMapping := defineMap[tagDefine.Mapping]
 		if isMapping {
@@ -261,7 +261,7 @@ func (this *Interpreter) GetEntityFieldsDefineInfo(entity interface{}) map[strin
 	return result
 }
 
-func (this *Interpreter) GetColumnSqls(defineMap map[string]interface{}, fieldName string, action string, delIndexSql bool) string {
+func (t *Interpreter) GetColumnSqls(defineMap map[string]interface{}, fieldName string, action string, delIndexSql bool, tableName string) (columnSql string, indexSql string) {
 	columnSqlList := make([]string, 0)
 	_, isPk := defineMap[tagDefine.PRIMARY_KEY]
 	column, has := defineMap[tagDefine.Column]
@@ -320,13 +320,17 @@ func (this *Interpreter) GetColumnSqls(defineMap map[string]interface{}, fieldNa
 		}
 	}
 
-	return strings.Join(columnSqlList, "")
+	return strings.Join(columnSqlList, ""), ""
 }
-func (this *Interpreter) FormatQuerySetence(qs string, tableName string) string {
+func (t *Interpreter) FormatQuerySetence(qs string, tableName string) string {
 	qsList := strings.Split(qs, " ")
 	for i, s := range qsList {
-		if s == "=" || s == ">" || s == "<" || s == ">=" || s == "<=" || s == "LIKE" || s == "IS" {
-			qsList[i-1] = fmt.Sprintf("`%s`.`%s`", tableName, qsList[i-1])
+		if s == "=" || s == ">" || s == "<" || s == ">=" || s == "<=" || s == "LIKE" || s == "IS" || s == "!=" || s == "IN" {
+			index := i - 1
+			if qsList[index] == "NOT" {
+				index -= 1
+			}
+			qsList[index] = fmt.Sprintf("`%s`.`%s`", tableName, qsList[index])
 		}
 	}
 
@@ -334,13 +338,25 @@ func (this *Interpreter) FormatQuerySetence(qs string, tableName string) string 
 	return qs
 }
 
-func (this *Interpreter) FormatSQL(sql string) string {
+func (t *Interpreter) FormatSQL(sql string) string {
 	sql = strings.ReplaceAll(sql, "\\", "")
 	sql = strings.ReplaceAll(sql, "'", "\\'")
 	return sql
 }
 
-func (this *Interpreter) AesEncrypt(orig string, key string) string {
+func (t *Interpreter) AlterTableDropColumn(tableName string, columnName string) string {
+	return fmt.Sprintf("ALTER TABLE `%s` Drop `%s`; ", tableName, columnName)
+}
+
+func (t *Interpreter) AlterTableAddColumn(tableName string, columnName string) string {
+	return fmt.Sprintf("ALTER TABLE `%s` Add %s; ", tableName, columnName)
+}
+
+func (t *Interpreter) AlterTableAlterColumn(tableName string, oldColumnName string, newColumnName string, changeSql string) string {
+	return fmt.Sprintf("ALTER TABLE `%s` CHANGE `%s` `%s` %s; ", tableName, oldColumnName, newColumnName, changeSql)
+}
+
+func (t *Interpreter) AesEncrypt(orig string, key string) string {
 	// 转成字节数组
 	origData := []byte(orig)
 	k := []byte(key)
@@ -350,7 +366,7 @@ func (this *Interpreter) AesEncrypt(orig string, key string) string {
 	// 获取秘钥块的长度
 	blockSize := block.BlockSize()
 	// 补全码
-	origData = this.PKCS7Padding(origData, blockSize)
+	origData = t.PKCS7Padding(origData, blockSize)
 	// 加密模式
 	blockMode := cipher.NewCBCEncrypter(block, k[:blockSize])
 	// 创建数组
@@ -359,7 +375,7 @@ func (this *Interpreter) AesEncrypt(orig string, key string) string {
 	blockMode.CryptBlocks(cryted, origData)
 	return base64.StdEncoding.EncodeToString(cryted)
 }
-func (this *Interpreter) AesDecrypt(cryted string, key string) string {
+func (t *Interpreter) AesDecrypt(cryted string, key string) string {
 	// 转成字节数组
 	crytedByte, _ := base64.StdEncoding.DecodeString(cryted)
 	k := []byte(key)
@@ -374,18 +390,18 @@ func (this *Interpreter) AesDecrypt(cryted string, key string) string {
 	// 解密
 	blockMode.CryptBlocks(orig, crytedByte)
 	// 去补全码
-	orig = this.PKCS7UnPadding(orig)
+	orig = t.PKCS7UnPadding(orig)
 	return string(orig)
 }
 
-func (this *Interpreter) PKCS7Padding(ciphertext []byte, blocksize int) []byte {
+func (t *Interpreter) PKCS7Padding(ciphertext []byte, blocksize int) []byte {
 	padding := blocksize - len(ciphertext)%blocksize
 	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
 	return append(ciphertext, padtext...)
 }
 
 //去码
-func (this *Interpreter) PKCS7UnPadding(origData []byte) []byte {
+func (t *Interpreter) PKCS7UnPadding(origData []byte) []byte {
 	length := len(origData)
 	unpadding := int(origData[length-1])
 	return origData[:(length - unpadding)]

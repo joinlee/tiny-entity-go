@@ -29,7 +29,7 @@ func initConnectPoolMysql() {
 	}
 }
 
-func GetDB(conStr string, connectionLimit int) *sql.DB {
+func GetDB(conStr string, connectionLimit int, driver string) *sql.DB {
 	initConnectPoolMysql()
 
 	db, has := connectPool.dbMap[conStr]
@@ -38,7 +38,7 @@ func GetDB(conStr string, connectionLimit int) *sql.DB {
 	} else {
 
 		connectPool.m.Lock()
-		db, err := sql.Open("mysql", conStr)
+		db, err := sql.Open(driver, conStr)
 		if err != nil {
 			db.Close()
 			connectPool.m.Unlock()
@@ -52,7 +52,7 @@ func GetDB(conStr string, connectionLimit int) *sql.DB {
 
 		connectPool.dbMap[conStr] = db
 		connectPool.m.Unlock()
-		fmt.Println("mysql db is opened +++++++++++ !!!!!!!", conStr)
+		fmt.Println(driver+" db is opened +++++++++++ !!!!!!!", conStr)
 
 		return db
 	}

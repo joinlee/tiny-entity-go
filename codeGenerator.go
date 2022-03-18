@@ -30,6 +30,16 @@ func NewCodeGenerator(opt CodeGeneratorOptions) *CodeGenerator {
 	if opt.ConnectionLimit == 0 {
 		opt.ConnectionLimit = 50
 	}
+	if opt.Driver == "" {
+		opt.Driver = "mysql"
+	}
+
+	if opt.Driver == "mysql" {
+		opt.Port = "3306"
+	} else if opt.Driver == "kingbase" {
+		opt.Port = "54321"
+	}
+
 	obj.options = opt
 
 	return obj
@@ -53,10 +63,21 @@ func (this *CodeGenerator) GenerateCtxFile() {
 	content += "import ( \n"
 	content += fmt.Sprintf("\"tinyGo/%s\" \n", this.options.ModelFilePath)
 	content += "\"github.com/joinlee/tiny-entity-go\" \n"
-	content += "tinyMysql \"github.com/joinlee/tiny-entity-go/mysql\" \n"
+
+	if this.options.Driver == "mysql" {
+		content += "tinyMysql \"github.com/joinlee/tiny-entity-go/mysql\" \n"
+	} else if this.options.Driver == "kingbase" {
+		content += "tinyKing \"github.com/joinlee/tiny-entity-go/kingbase\" \n"
+	}
+
 	content += ") \n"
 	content += fmt.Sprintf("type %s struct { \n", ctxStructName)
-	content += "*tinyMysql.MysqlDataContext \n"
+
+	if this.options.Driver == "mysql" {
+		content += "*tinyMysql.MysqlDataContext \n"
+	} else if this.options.Driver == "kingbase" {
+		content += "*tinyKing.KingDataContext \n"
+	}
 
 	for _, modelName := range modelNames {
 		content += fmt.Sprintf("%s *models.%s \n", modelName, modelName)
@@ -65,7 +86,13 @@ func (this *CodeGenerator) GenerateCtxFile() {
 	content += "} \n"
 	content += fmt.Sprintf("func New%s() *%s { \n", ctxStructName, ctxStructName)
 	content += fmt.Sprintf("ctx := &%s{} \n", ctxStructName)
-	content += "ctx.MysqlDataContext = tinyMysql.NewMysqlDataContext(tinyMysql.MysqlDataOption{ \n"
+
+	if this.options.Driver == "mysql" {
+		content += "ctx.MysqlDataContext = tinyMysql.NewMysqlDataContext(tinyMysql.MysqlDataOption{ \n"
+	} else if this.options.Driver == "kingbase" {
+		content += "ctx.KingDataContext = tinyKing.NewKingDataContext(tinyKing.KingDataOption{ \n"
+	}
+
 	content += fmt.Sprintf("Host:            \"%s\", \n", this.options.Host)
 	content += fmt.Sprintf("Port:            \"%s\", \n", this.options.Port)
 	content += fmt.Sprintf("Username:            \"%s\", \n", this.options.Username)
@@ -77,13 +104,24 @@ func (this *CodeGenerator) GenerateCtxFile() {
 
 	for _, modelName := range modelNames {
 		content += fmt.Sprintf("ctx.%s = &models.%s{ \n", modelName, modelName)
-		content += fmt.Sprintf("EntityObjectMysql: tinyMysql.NewEntityObjectMysql(ctx.MysqlDataContext, \"%s\"),}\n", modelName)
+
+		if this.options.Driver == "mysql" {
+			content += fmt.Sprintf("IEntityObject: tinyMysql.NewEntityObjectMysql(ctx.MysqlDataContext, \"%s\"),}\n", modelName)
+		} else if this.options.Driver == "kingbase" {
+			content += fmt.Sprintf("IEntityObject: tinyKing.NewEntityObjectKing(ctx.KingDataContext, \"%s\"),}\n", modelName)
+		}
 		content += fmt.Sprintf("ctx.RegistModel(ctx.%s)\n", modelName)
 	}
 
 	content += "return ctx } \n"
 	content += fmt.Sprintf("func (this *%s) CreateDatabase() { \n", ctxStructName)
-	content += "this.MysqlDataContext.CreateDatabase() \n"
+
+	if this.options.Driver == "mysql" {
+		content += "this.MysqlDataContext.CreateDatabase() \n"
+	} else if this.options.Driver == "kingbase" {
+		content += "this.KingDataContext.CreateDatabase() \n"
+	}
+
 	for _, modelName := range modelNames {
 		content += fmt.Sprintf("this.CreateTable(this.%s) \n", modelName)
 	}
@@ -135,7 +173,13 @@ func (this *CodeGenerator) AutoMigration(ctx IDataContext) {
 		// 第一次初始化的时候，生成迁移记录
 		logs := make([]MigrationLogInfo, 0)
 		for _, entity := range ctx.GetEntityList() {
-			interpreter := NewInterpreter(entity.TableName())
+			var interpreter IInterpreter
+			if this.options.Driver == "mysql" {
+				interpreter = NewInterpreter(entity.TableName())
+			} else if this.options.Driver == "kingbase" {
+				interpreter = NewInterpreterKing(entity.TableName())
+			}
+
 			log := MigrationLogInfo{
 				Content: MigrationLogContent{
 					TableName:    entity.TableName(),
@@ -196,16 +240,27 @@ func (this *CodeGenerator) TransLogToSqls(historyLog MigrationLog) []string {
 
 		if logItem.Action == "alter" {
 			for _, diffItem := range logItem.DiffContent.Column {
-				interpreter := NewInterpreter(logItem.Content.TableName)
+				var interpreter IInterpreter
+				if this.options.Driver == "mysql" {
+					interpreter = NewInterpreter(logItem.Content.TableName)
+				} else if this.options.Driver == "kingbase" {
+					interpreter = NewInterpreterKing(logItem.Content.TableName)
+				}
 
 				if diffItem.OldItem != nil && diffItem.NewItem == nil {
 					// 表示删除字段
-					sqlStr = append(sqlStr, fmt.Sprintf("ALTER TABLE `%s` DROP `%s`; ", logItem.Content.TableName, diffItem.OldItem[tagDefine.Column]))
+					// sqlStr = append(sqlStr, fmt.Sprintf("ALTER TABLE `%s` DROP `%s`; ", logItem.Content.TableName, diffItem.OldItem[tagDefine.Column]))
+					sqlStr = append(sqlStr, interpreter.AlterTableDropColumn(logItem.Content.TableName, diffItem.OldItem[tagDefine.Column].(string)))
 				}
 
 				if diffItem.OldItem == nil && diffItem.NewItem != nil {
 					// 表示新增字段
-					sqlStr = append(sqlStr, fmt.Sprintf("ALTER TABLE `%s` ADD %s; ", logItem.Content.TableName, interpreter.GetColumnSqls(diffItem.NewItem, diffItem.NewItem[tagDefine.Column].(string), "add", false)))
+					colStr, indexStr := interpreter.GetColumnSqls(diffItem.NewItem, diffItem.NewItem[tagDefine.Column].(string), "add", false, logItem.Content.TableName)
+					// sqlStr = append(sqlStr, fmt.Sprintf("ALTER TABLE `%s` ADD %s; ", logItem.Content.TableName, colStr))
+					sqlStr = append(sqlStr, interpreter.AlterTableAddColumn(logItem.Content.TableName, colStr))
+					if indexStr != "" {
+						sqlStr = append(sqlStr, indexStr)
+					}
 				}
 
 				if diffItem.OldItem != nil && diffItem.NewItem != nil {
@@ -213,7 +268,15 @@ func (this *CodeGenerator) TransLogToSqls(historyLog MigrationLog) []string {
 					indexDefine := diffItem.OldItem[tagDefine.INDEX]
 					delIndex := indexDefine != nil && indexDefine.(bool)
 
-					sqlStr = append(sqlStr, fmt.Sprintf("ALTER TABLE `%s` CHANGE `%s` `%s` %s; ", logItem.Content.TableName, diffItem.OldItem[tagDefine.Column], diffItem.NewItem[tagDefine.Column], interpreter.GetColumnSqls(diffItem.NewItem, diffItem.NewItem[tagDefine.Column].(string), "alter", delIndex)))
+					colStr, indexStr := interpreter.GetColumnSqls(diffItem.NewItem, diffItem.NewItem[tagDefine.Column].(string), "alter", delIndex, logItem.Content.TableName)
+
+					// sqlStr = append(sqlStr, fmt.Sprintf("ALTER TABLE `%s` CHANGE `%s` `%s` %s; ", logItem.Content.TableName, diffItem.OldItem[tagDefine.Column], diffItem.NewItem[tagDefine.Column], colStr))
+
+					sqlStr = append(sqlStr, interpreter.AlterTableAlterColumn(logItem.Content.TableName, diffItem.OldItem[tagDefine.Column].(string), diffItem.NewItem[tagDefine.Column].(string), colStr))
+
+					if indexStr != "" {
+						sqlStr = append(sqlStr, indexStr)
+					}
 				}
 			}
 		}
@@ -389,6 +452,7 @@ type CodeGeneratorOptions struct {
 	DataBaseName    string `json:"dataBaseName"`
 	CharSet         string `json:"charSet"`
 	ConnectionLimit int    `json:"connectionLimit"`
+	Driver          string `json:"driver"`
 }
 
 func Capitalize(str string) string {

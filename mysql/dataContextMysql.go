@@ -35,7 +35,7 @@ func NewMysqlDataContext(opt MysqlDataOption) *MysqlDataContext {
 		opt.CharSet)
 	ctx.conStr = conStr
 
-	ctx.db = GetDB(conStr, opt.ConnectionLimit)
+	ctx.db = GetDB(conStr, opt.ConnectionLimit, "mysql")
 
 	ctx.interpreter = &tiny.Interpreter{}
 	ctx.interpreter.AESKey = tiny.AESKey
@@ -57,7 +57,7 @@ func (this *MysqlDataContext) Create(entity tiny.Entity) {
 	if this.tx == nil {
 		this.submit(sql, false)
 	} else {
-		// this.querySentence = append(this.querySentence, sql)
+		this.querySentence = append(this.querySentence, sql)
 		this.tx.Exec(sql)
 	}
 }
@@ -82,7 +82,7 @@ func (this *MysqlDataContext) CreateBatch(entities []tiny.Entity) {
 		if this.tx == nil {
 			this.submit(sql, false)
 		} else {
-			// this.querySentence = append(this.querySentence, sql)
+			this.querySentence = append(this.querySentence, sql)
 			this.tx.Exec(sql)
 		}
 	}
@@ -109,7 +109,7 @@ func (this *MysqlDataContext) Update(entity tiny.Entity) {
 	if this.tx == nil {
 		this.submit(sql, false)
 	} else {
-		// this.querySentence = append(this.querySentence, sql)
+		this.querySentence = append(this.querySentence, sql)
 		this.tx.Exec(sql)
 	}
 }
@@ -119,17 +119,21 @@ func (this *MysqlDataContext) Update(entity tiny.Entity) {
 //fields 需要更新的字段列表，传入参数例子：[ Username = 'lkc', age = 18 ]
 //queryStr 条件参数 例子：gender = 'male'
 func (this *MysqlDataContext) UpdateWith(entity tiny.Entity, fields interface{}, queryStr interface{}) {
-	fds := fields.([]string)
-	qs := queryStr.(string)
-
 	tableName := reflect.TypeOf(entity).Elem().Name()
+	fds := fields.([]string)
+	fdsAfter := make([]string, 0)
+	for _, v := range fds {
+		fdsAfter = append(fdsAfter, this.interpreter.FormatQuerySetence(v, tableName))
+	}
+	qs := queryStr.(string)
+	qs = this.interpreter.FormatQuerySetence(qs, tableName)
 
-	sql := fmt.Sprintf("UPDATE `%s` SET %s WHERE %s ;", tableName, strings.Join(fds, ","), qs)
+	sql := fmt.Sprintf("UPDATE `%s` SET %s WHERE %s ;", tableName, strings.Join(fdsAfter, ","), qs)
 
 	if this.tx == nil {
 		this.submit(sql, false)
 	} else {
-		// this.querySentence = append(this.querySentence, sql)
+		this.querySentence = append(this.querySentence, sql)
 		this.tx.Exec(sql)
 	}
 }
@@ -144,7 +148,6 @@ func (this *MysqlDataContext) Delete(entity tiny.Entity) {
 	if this.tx == nil {
 		this.submit(sql, false)
 	} else {
-		// this.querySentence = append(this.querySentence, sql)
 		this.tx.Exec(sql)
 	}
 }
@@ -162,7 +165,7 @@ func (this *MysqlDataContext) DeleteWith(entity tiny.Entity, queryStr interface{
 	if this.tx == nil {
 		this.submit(sql, false)
 	} else {
-		// this.querySentence = append(this.querySentence, sql)
+		this.querySentence = append(this.querySentence, sql)
 		this.tx.Exec(sql)
 	}
 }
@@ -224,8 +227,8 @@ func (this *MysqlDataContext) CreateTableSQL(entity tiny.Entity) string {
 		if isMapping {
 			continue
 		}
-
-		columnSqlList = append(columnSqlList, this.interpreter.GetColumnSqls(defineMap, sField.Name, "init", false))
+		colStr, _ := this.interpreter.GetColumnSqls(defineMap, sField.Name, "init", false, "")
+		columnSqlList = append(columnSqlList, colStr)
 	}
 	sql += fmt.Sprintf("CREATE TABLE `%s` ( %s );", entity.TableName(), strings.Join(columnSqlList, ","))
 	return sql
@@ -239,22 +242,8 @@ func (this *MysqlDataContext) Commit() {
 	if this.tranCount > 1 {
 		this.tranCount--
 	} else if this.tranCount == 1 {
-		// if len(this.querySentence) == 0 {
-		// 	this.tx.Rollback()
-		// 	// this.db.Close()
-		// 	this.cleanTransactionStatus()
-		// 	return
-		// }
-
 		tiny.Log(strings.Join(this.querySentence, ""))
-		// rows, err := this.tx.Query(strings.Join(this.querySentence, ""))
-		// if rows != nil {
-		// 	rows.Close()
-		// }
 
-		// if err != nil {
-		// 	panic(err)
-		// }
 		err := this.tx.Commit()
 		this.cleanTransactionStatus()
 		if err != nil {
@@ -264,6 +253,7 @@ func (this *MysqlDataContext) Commit() {
 }
 
 func (this *MysqlDataContext) submit(sqlStr string, isQuery bool) {
+	tiny.Log(sqlStr)
 	if isQuery {
 		rows, err := this.db.Query(sqlStr)
 		rows.Close()
@@ -276,8 +266,6 @@ func (this *MysqlDataContext) submit(sqlStr string, isQuery bool) {
 			panic(err)
 		}
 	}
-
-	tiny.Log(sqlStr)
 }
 
 func (this *MysqlDataContext) cleanTransactionStatus() {
@@ -310,14 +298,15 @@ func (this *MysqlDataContext) Query(sqlStr string, noCommit bool) map[int]map[st
 	var err error
 	tiny.Log(sqlStr)
 	if this.tx != nil {
-		// this.querySentence = append(this.querySentence, sqlStr)
 		rows, err = this.tx.Query(sqlStr)
 	} else {
 		rows, err = this.db.Query(sqlStr)
 	}
 
 	if err != nil {
-		rows.Close()
+		if rows != nil {
+			rows.Close()
+		}
 		panic(err)
 	}
 

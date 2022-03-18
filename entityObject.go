@@ -11,7 +11,6 @@ type IEntityObject interface {
 
 	//获取表名称（表名称和实体名称保持一致）
 	TableName() string
-	// ToString() string
 }
 
 type IQueryObject interface {
@@ -60,6 +59,8 @@ type IQueryObject interface {
 		mEntity 主表实体 fEntity 需要连接的实体， mField 主表的连接字段， fField 外联表的字段
 	*/
 	JoinOnWith(mEntity Entity, fEntity Entity, mField string, fField string) IQueryObject
+
+	GetIQueryObject() IQueryObject
 }
 
 type IResultQueryObject interface {

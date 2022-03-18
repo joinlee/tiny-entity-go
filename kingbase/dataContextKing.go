@@ -9,7 +9,6 @@ import (
 	"github.com/joinlee/tiny-entity-go"
 	tinyMysql "github.com/joinlee/tiny-entity-go/mysql"
 	"github.com/joinlee/tiny-entity-go/tagDefine"
-	_ "kingbase.com/gokb"
 )
 
 type KingDataContext struct {

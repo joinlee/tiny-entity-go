@@ -1,2 +1,4 @@
 github.com/go-sql-driver/mysql v1.6.0 h1:BCTh4TKNUYmOmMUcQ3IipzF5prigylS7XXjEkfCHuOE=
 github.com/go-sql-driver/mysql v1.6.0/go.mod h1:DCzpHaOWr8IXmIStZouvnhqoel9Qv2LBy8hT2VhHyBg=
+github.com/joinlee/kingbase-driver v1.0.3 h1:RuNzOR7AoRpOsi1kbcYIGpC/QAX97t4QKE+yUJho3ZA=
+github.com/joinlee/kingbase-driver v1.0.3/go.mod h1:OrfyxFFFau/xPy7aMwzfDKoLb0w3im8gimqM7zuvHh8=

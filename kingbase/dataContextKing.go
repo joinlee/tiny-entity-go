@@ -10,7 +10,6 @@ import (
 	tinyMysql "github.com/joinlee/tiny-entity-go/mysql"
 	"github.com/joinlee/tiny-entity-go/tagDefine"
 
-	// _ "kingbase.com/gokb"
 	_ "github.com/joinlee/kingbase-driver"
 )
 

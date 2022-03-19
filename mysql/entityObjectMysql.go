@@ -219,7 +219,6 @@ func (this *EntityObjectMysql) First(entity interface{}) (bool, *tiny.Empty) {
 	mEntity := this.ctx.GetEntityInstance(this.tableName)
 	sqlStr := this.interpreter.GetFinalSql(this.tableName, mEntity.(tiny.Entity))
 	rows := this.ctx.Query(sqlStr, false)
-	// fmt.Println("sql result First:", rows)
 
 	dataList := this.queryToDatas2(this.tableName, rows)
 
@@ -247,10 +246,6 @@ func (this *EntityObjectMysql) ToList(list interface{}) {
 	mEntity := this.ctx.GetEntityInstance(this.tableName)
 	sqlStr := this.interpreter.GetFinalSql(this.tableName, mEntity.(tiny.Entity))
 	rows := this.ctx.Query(sqlStr, false)
-	// fmt.Println("sql result: ", rows)
-
-	// dataList := this.queryToDatas(mEntity, rows)
-
 	dataList := this.queryToDatas2(this.tableName, rows)
 
 	jsonStr := tiny.JsonStringify(dataList)

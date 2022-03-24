@@ -45,7 +45,7 @@ func NewKingDataContext(opt KingDataOption) *KingDataContext {
 
 //插入数据到数据库
 func (this *KingDataContext) Create(entity tiny.Entity) {
-	tableName := reflect.TypeOf(entity).Elem().Name()
+	tableName := this.getTableNameFromEntity(entity)
 	sql := fmt.Sprintf("INSERT INTO \"%s\"", tableName)
 	fields, values, _ := this.getKeyValueList(entity, true)
 	sql += fmt.Sprintf(" (%s) VALUES (%s);", strings.Join(fields, ","), strings.Join(values, ","))
@@ -60,7 +60,8 @@ func (this *KingDataContext) Create(entity tiny.Entity) {
 
 func (this *KingDataContext) CreateBatch(entities []tiny.Entity) {
 	if len(entities) > 0 {
-		tableName := reflect.TypeOf(entities[0]).Elem().Name()
+		tableName := this.getTableNameFromEntity(entities[0])
+
 		sql := fmt.Sprintf("INSERT INTO \"%s\"", tableName)
 		fieldPart := ""
 		valueStrs := make([]string, 0)
@@ -87,7 +88,7 @@ func (this *KingDataContext) CreateBatch(entities []tiny.Entity) {
 
 //更新数据到数据库
 func (this *KingDataContext) Update(entity tiny.Entity) {
-	tableName := reflect.TypeOf(entity).Elem().Name()
+	tableName := this.getTableNameFromEntity(entity)
 	sql := fmt.Sprintf("UPDATE \"%s\" SET ", tableName)
 	_, _, kvMap := this.getKeyValueList(entity, false)
 
@@ -115,7 +116,7 @@ func (this *KingDataContext) Update(entity tiny.Entity) {
 //fields 需要更新的字段列表，传入参数例子：[ Username = 'lkc', age = 18 ]
 //queryStr 条件参数 例子：gender = 'male'
 func (this *KingDataContext) UpdateWith(entity tiny.Entity, fields interface{}, queryStr interface{}) {
-	tableName := reflect.TypeOf(entity).Elem().Name()
+	tableName := this.getTableNameFromEntity(entity)
 	fds := fields.([]string)
 	fdsAfter := make([]string, 0)
 	for _, v := range fds {
@@ -136,7 +137,7 @@ func (this *KingDataContext) UpdateWith(entity tiny.Entity, fields interface{}, 
 
 //通过实体Id 删除数据
 func (this *KingDataContext) Delete(entity tiny.Entity) {
-	tableName := reflect.TypeOf(entity).Elem().Name()
+	tableName := this.getTableNameFromEntity(entity)
 	_, _, kvMap := this.getKeyValueList(entity, false)
 
 	sql := fmt.Sprintf("DELETE FROM \"%s\" WHERE \"%s\".\"Id\" = %s ;", tableName, tableName, kvMap["Id"])
@@ -151,7 +152,7 @@ func (this *KingDataContext) Delete(entity tiny.Entity) {
 
 //通过指定条件删除数据
 func (this *KingDataContext) DeleteWith(entity tiny.Entity, queryStr interface{}, args ...interface{}) {
-	tableName := reflect.TypeOf(entity).Elem().Name()
+	tableName := this.getTableNameFromEntity(entity)
 	qs := queryStr.(string)
 	for _, value := range args {
 		qs = strings.Replace(qs, "?", this.interpreter.TransValueToStr(value), 1)
@@ -166,6 +167,16 @@ func (this *KingDataContext) DeleteWith(entity tiny.Entity, queryStr interface{}
 		this.querySentence = append(this.querySentence, sql)
 		this.tx.Exec(sql)
 	}
+}
+
+func (this *KingDataContext) getTableNameFromEntity(entity tiny.Entity) string {
+	tableName := ""
+	if reflect.TypeOf(entity).Kind() == reflect.Ptr {
+		tableName = reflect.TypeOf(entity).Elem().Name()
+	} else {
+		tableName = reflect.TypeOf(entity).Name()
+	}
+	return tableName
 }
 
 func (this *KingDataContext) CreateDatabase() {
@@ -362,9 +373,20 @@ func (this *KingDataContext) GetEntityInstance(entityName string) interface{} {
 	return reflect.New(entityType).Elem().Interface()
 }
 
+func (this *KingDataContext) getTypeAndValueRef(entity tiny.Entity) (etype reflect.Type, evalue reflect.Value) {
+	if reflect.TypeOf(entity).Kind() == reflect.Ptr {
+		etype = reflect.TypeOf(entity).Elem()
+		evalue = reflect.ValueOf(entity).Elem()
+	} else {
+		etype = reflect.TypeOf(entity)
+		evalue = reflect.ValueOf(entity)
+	}
+
+	return etype, evalue
+}
+
 func (this *KingDataContext) getKeyValueList(entity tiny.Entity, includeNilValue bool) ([]string, []string, map[string]string) {
-	etype := reflect.TypeOf(entity).Elem()
-	evalue := reflect.ValueOf(entity).Elem()
+	etype, evalue := this.getTypeAndValueRef(entity)
 	fields := make([]string, 0)
 	values := make([]string, 0)
 

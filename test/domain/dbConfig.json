@@ -1,0 +1,9 @@
+{
+    "connectionLimit": 50,
+    "host": "localhost",
+    "username": "root",
+    "password": "123456",
+    "dataBaseName": "tinygotest",
+    "charset": "utf8",
+    "collate": "utf8_unicode_ci"
+}

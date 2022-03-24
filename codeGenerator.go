@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/joinlee/tiny-entity-go/tagDefine"
+	"github.com/joinlee/tiny-entity-go/utils"
 )
 
 type CodeGenerator struct {
@@ -49,19 +50,19 @@ func (this *CodeGenerator) getCtxFileName() string {
 	fnames := strings.Split(this.options.CtxFileName, "/")
 	fName := fnames[len(fnames)-1]
 
-	ctxStructName := Capitalize(fName)
+	ctxStructName := utils.Capitalize(fName)
 
 	return ctxStructName
 }
 
 func (this *CodeGenerator) GenerateCtxFile() {
-	rootPath := this.getRootPath()
+	rootPath := utils.GetRootPath()
 	ctxStructName := this.getCtxFileName()
 	modelNames := this.LoadEntityModes()
 
 	content := fmt.Sprintf("package %s \n", this.options.PackageName)
 	content += "import ( \n"
-	content += fmt.Sprintf("\"tinyGo/%s\" \n", this.options.ModelFilePath)
+	content += fmt.Sprintf(" \"%s\" \n", this.options.ModulePkgName)
 	content += "\"github.com/joinlee/tiny-entity-go\" \n"
 
 	if this.options.Driver == "mysql" {
@@ -139,14 +140,14 @@ func (this *CodeGenerator) GenerateCtxFile() {
 }
 
 func (this *CodeGenerator) LoadEntityModes() []string {
-	rootPath := this.getRootPath()
+	rootPath := utils.GetRootPath()
 	modelNames := make([]string, 0)
 
 	d, _ := os.Open(rootPath + "/" + this.options.ModelFilePath + "/")
 	fi, _ := d.Readdir(-1)
 	for _, fileItem := range fi {
 		if fileItem.Mode().IsRegular() {
-			tmp := strings.Split(Capitalize(fileItem.Name()), ".")
+			tmp := strings.Split(utils.Capitalize(fileItem.Name()), ".")
 			modelNames = append(modelNames, tmp[0])
 		}
 	}
@@ -158,7 +159,7 @@ func (this *CodeGenerator) AutoMigration(ctx IDataContext) {
 	this.ctx = ctx
 	var logReport MigrationLog
 	ctxFileName := this.getCtxFileName()
-	fileStr := ReadFile(fmt.Sprintf("%s/%s_migrationLogs.json", this.getRootPath(), ctxFileName))
+	fileStr := ReadFile(fmt.Sprintf("%s/%s_migrationLogs.json", utils.GetRootPath(), ctxFileName))
 	if fileStr != "" {
 		json.Unmarshal([]byte(fileStr), &logReport)
 		// 已经有历史的迁移记录
@@ -218,11 +219,6 @@ func (this *CodeGenerator) AutoMigration(ctx IDataContext) {
 	}
 
 	fmt.Println("AutoMigration Finish!!!")
-}
-
-func (this *CodeGenerator) getRootPath() string {
-	dir, _ := os.Getwd()
-	return dir
 }
 
 func (this *CodeGenerator) TransLogToSqls(historyLog MigrationLog) []string {
@@ -429,7 +425,7 @@ func (this *CodeGenerator) ComparisonColumn(oldC MigrationLogContent, newC Migra
 	return diff
 }
 
-func (this *CodeGenerator) getAddMigrationLogInfo(tableName string, entity IEntityObject) MigrationLogInfo {
+func (this *CodeGenerator) getAddMigrationLogInfo(tableName string, entity Entity) MigrationLogInfo {
 	interpreter := NewInterpreter(tableName)
 	return MigrationLogInfo{
 		Action: "add",
@@ -444,6 +440,7 @@ func (this *CodeGenerator) getAddMigrationLogInfo(tableName string, entity IEnti
 type CodeGeneratorOptions struct {
 	CtxFileName     string
 	ModelFilePath   string
+	ModulePkgName   string
 	PackageName     string
 	Host            string `json:"host"`
 	Port            string `json:"port"`
@@ -453,25 +450,6 @@ type CodeGeneratorOptions struct {
 	CharSet         string `json:"charSet"`
 	ConnectionLimit int    `json:"connectionLimit"`
 	Driver          string `json:"driver"`
-}
-
-func Capitalize(str string) string {
-	var upperStr string
-	vv := []rune(str) // 后文有介绍
-	for i := 0; i < len(vv); i++ {
-		if i == 0 {
-			if vv[i] >= 97 && vv[i] <= 122 { // 后文有介绍
-				vv[i] -= 32 // string的码表相差32位
-				upperStr += string(vv[i])
-			} else {
-				fmt.Println("Not begins with lowercase letter,")
-				return str
-			}
-		} else {
-			upperStr += string(vv[i])
-		}
-	}
-	return upperStr
 }
 
 func WriteFile(cont string, fileName string) {

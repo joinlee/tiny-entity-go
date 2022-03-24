@@ -38,5 +38,5 @@ type IDataContext interface {
 	//删除数据库
 	DeleteDatabase()
 	//获取上下文实体列表
-	GetEntityList() map[string]IEntityObject
+	GetEntityList() map[string]Entity
 }

@@ -159,7 +159,7 @@ func (this *MysqlDataContext) DeleteWith(entity tiny.Entity, queryStr interface{
 		qs = strings.Replace(qs, "?", this.interpreter.TransValueToStr(value), 1)
 	}
 
-	tableName := reflect.TypeOf(entity).Elem().Name()
+	tableName := this.getTableNameFromEntity(entity)
 	sql := fmt.Sprintf("DELETE FROM `%s` WHERE %s ;", tableName, qs)
 
 	if this.tx == nil {

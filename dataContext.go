@@ -24,7 +24,7 @@ type IDataContext interface {
 	//提交事务
 	Commit()
 	//直接查询
-	Query(sqlStr string, noCommit bool) map[int]map[string]string
+	Query(sqlStr string) map[int]map[string]string
 	//回滚
 	RollBack()
 	//创建数据库

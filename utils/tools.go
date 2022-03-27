@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -43,4 +44,8 @@ func Capitalize(str string) string {
 
 func GetGuid() string {
 	return strings.ReplaceAll(uuid.NewV4().String(), "-", "")
+}
+
+func GetTimeSpan() int64 {
+	return time.Now().UnixNano() / 1e6
 }

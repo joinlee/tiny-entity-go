@@ -107,9 +107,9 @@ func (this *CodeGenerator) GenerateCtxFile() {
 		content += fmt.Sprintf("ctx.%s = &models.%s{ \n", modelName, modelName)
 
 		if this.options.Driver == "mysql" {
-			content += fmt.Sprintf("IEntityObject: tinyMysql.NewEntityObjectMysql(ctx.MysqlDataContext, \"%s\"),}\n", modelName)
+			content += fmt.Sprintf("IEntityObject: tinyMysql.NewEntityObjectMysql[models.%s](ctx.MysqlDataContext, \"%s\"),}\n", modelName, modelName)
 		} else if this.options.Driver == "kingbase" {
-			content += fmt.Sprintf("IEntityObject: tinyKing.NewEntityObjectKing(ctx.KingDataContext, \"%s\"),}\n", modelName)
+			content += fmt.Sprintf("IEntityObject: tinyKing.NewEntityObjectKing[models.%s](ctx.KingDataContext, \"%s\"),}\n", modelName, modelName)
 		}
 		content += fmt.Sprintf("ctx.RegistModel(ctx.%s)\n", modelName)
 	}
@@ -129,8 +129,8 @@ func (this *CodeGenerator) GenerateCtxFile() {
 
 	content += "} \n"
 
-	content += fmt.Sprintf("func (this *%s) GetEntityList() map[string]tiny.IEntityObject { \n", ctxStructName)
-	content += "list := make(map[string]tiny.IEntityObject) \n"
+	content += fmt.Sprintf("func (this *%s) GetEntityList() map[string]tiny.Entity { \n", ctxStructName)
+	content += "list := make(map[string]tiny.Entity) \n"
 	for _, modelName := range modelNames {
 		content += fmt.Sprintf("list[\"%s\"] = this.%s \n", modelName, modelName)
 	}
@@ -166,7 +166,7 @@ func (this *CodeGenerator) AutoMigration(ctx IDataContext) {
 		r := this.ComparisonTable(logReport)
 		if len(r) > 0 {
 			logReport = MigrationLog{
-				Version: time.Now().UnixNano() / 1e6,
+				Version: utils.GetTimeSpan(),
 				Logs:    r,
 			}
 		}
@@ -184,7 +184,7 @@ func (this *CodeGenerator) AutoMigration(ctx IDataContext) {
 			log := MigrationLogInfo{
 				Content: MigrationLogContent{
 					TableName:    entity.TableName(),
-					Version:      time.Now().UnixNano() / 1e6,
+					Version:      utils.GetTimeSpan(),
 					ColumnDefine: interpreter.GetEntityFieldsDefineInfo(entity),
 				},
 				Action: "init",
@@ -194,7 +194,7 @@ func (this *CodeGenerator) AutoMigration(ctx IDataContext) {
 		}
 
 		logReport = MigrationLog{
-			Version: time.Now().UnixNano() / 1e6,
+			Version: utils.GetTimeSpan(),
 			Logs:    logs,
 		}
 	}
@@ -211,7 +211,7 @@ func (this *CodeGenerator) AutoMigration(ctx IDataContext) {
 
 	if len(sqlStrs) > 0 {
 		Transaction(this.ctx, func(ctx IDataContext) {
-			ctx.Query(strings.Join(sqlStrs, ""), true)
+			ctx.Query(strings.Join(sqlStrs, ""))
 		})
 
 		WriteFile(JsonStringify(logReport), fmt.Sprintf("%s_migrationLogs.json", ctxFileName))

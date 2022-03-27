@@ -1,6 +1,7 @@
 package test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/joinlee/tiny-entity-go/test/domain"
@@ -35,11 +36,21 @@ func TestCreate(t *testing.T) {
 
 	ctx.Create(account)
 
-	targetAccount := new(models.Account)
-	ctx.Account.Where("Id = ?", account.Id).First(targetAccount)
+	targetAccount := ctx.Account.Where("Id = ?", account.Id).First()
 
 	if targetAccount.Id != account.Id {
 		t.Errorf("input: %s, output: %s", account.Id, targetAccount.Id)
 	}
 
+	targetAccount = ctx.Account.Where("Id = ?", "123").First()
+	if targetAccount != nil {
+		t.Errorf("targetAccount is not nil ")
+	}
+}
+
+func TestToList(t *testing.T) {
+	ctx := domain.NewTinyDataContext()
+	accounts := ctx.Account.ToList()
+
+	fmt.Printf("list length : %d", len(accounts))
 }

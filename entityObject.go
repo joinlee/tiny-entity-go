@@ -83,7 +83,7 @@ type IResultQueryObject[T any] interface {
 		user := models.User{}
 		ctx.User.First(&user)
 	*/
-	First(entity *T) (bool, *Empty)
+	First() *T
 }
 
 type ITakeChildQueryObject[T any] interface {
@@ -100,7 +100,7 @@ type IAssembleResultQuery[T any] interface {
 		list := make([]models.User, 0)
 		ctx.User.ToList(&list)
 	*/
-	ToList(result *[]T)
+	ToList() []T
 }
 
 type Empty struct{}

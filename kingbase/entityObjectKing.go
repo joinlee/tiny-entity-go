@@ -12,16 +12,15 @@ import (
 	"github.com/joinlee/tiny-entity-go/tagDefine"
 )
 
-type EntityObjectKing struct {
-	ctx         *KingDataContext
-	interpreter *tiny.InterpreterKing
+type EntityObjectKing[T tiny.Entity] struct {
+	ctx *KingDataContext
 
 	tableName    string
 	joinEntities map[string]tinyMysql.JoinEntityItem
 }
 
-func NewEntityObjectKing(ctx *KingDataContext, tableName string) *EntityObjectKing {
-	entity := &EntityObjectKing{}
+func NewEntityObjectKing[T tiny.Entity](ctx *KingDataContext, tableName string) *EntityObjectKing[T] {
+	entity := &EntityObjectKing[T]{}
 	entity.ctx = ctx
 	entity.tableName = tableName
 	entity.InitEntityObj(tableName)
@@ -29,33 +28,33 @@ func NewEntityObjectKing(ctx *KingDataContext, tableName string) *EntityObjectKi
 	return entity
 }
 
-func (this *EntityObjectKing) InitEntityObj(tableName string) {
-	this.interpreter = tiny.NewInterpreterKing(tableName)
+func (this *EntityObjectKing[T]) InitEntityObj(tableName string) {
+	// this.ctx = tiny.NewctxKing(tableName)
 	this.joinEntities = make(map[string]tinyMysql.JoinEntityItem)
 }
 
-func (this *EntityObjectKing) TableName() string {
+func (this *EntityObjectKing[T]) TableName() string {
 	return this.tableName
 }
 
-func (this *EntityObjectKing) GetIQueryObject() tiny.IQueryObject {
+func (this *EntityObjectKing[T]) GetIQueryObject() tiny.IQueryObject[T] {
 	return this
 }
 
-func (this *EntityObjectKing) And() tiny.IQueryObject {
-	this.interpreter.AddToWhere("AND", false)
+func (this *EntityObjectKing[T]) And() tiny.IQueryObject[T] {
+	this.ctx.AddToWhere("AND", false)
 	return this
 }
 
-func (this *EntityObjectKing) Or() tiny.IQueryObject {
-	this.interpreter.AddToWhere("OR", false)
+func (this *EntityObjectKing[T]) Or() tiny.IQueryObject[T] {
+	this.ctx.AddToWhere("OR", false)
 	return this
 }
 
 // 添加查询条件
 /* queryStr 查询语句， args 条件参数
 ex： ctx.User.Where("Id = ?", user.Id).Any() */
-func (this *EntityObjectKing) Where(queryStr interface{}, args ...interface{}) tiny.IQueryObject {
+func (this *EntityObjectKing[T]) Where(queryStr interface{}, args ...interface{}) tiny.IQueryObject[T] {
 	return this.wherePartHandle(this.tableName, queryStr, args)
 }
 
@@ -63,20 +62,20 @@ func (this *EntityObjectKing) Where(queryStr interface{}, args ...interface{}) t
 /* entity 需要查询的实体 queryStr 查询语句， args 条件参数
 entity 表示查询外键表的条件
 ex： ctx.User.WhereWith(ctx.Account, "Id = ?", user.Id).Any() */
-func (this *EntityObjectKing) WhereWith(entity tiny.Entity, queryStr interface{}, args ...interface{}) tiny.IQueryObject {
+func (this *EntityObjectKing[T]) WhereWith(entity tiny.Entity, queryStr interface{}, args ...interface{}) tiny.IQueryObject[T] {
 	tableName := reflect.TypeOf(entity).Elem().Name()
 	return this.wherePartHandle(tableName, queryStr, args)
 }
 
-func (this *EntityObjectKing) Contains(felid string, values interface{}) tiny.IQueryObject {
+func (this *EntityObjectKing[T]) Contains(felid string, values interface{}) tiny.IQueryObject[T] {
 	return this.inPartHandle(this.tableName, felid, values)
 }
 
-func (this *EntityObjectKing) ContainsWith(entity tiny.Entity, felid string, values interface{}) tiny.IQueryObject {
+func (this *EntityObjectKing[T]) ContainsWith(entity tiny.Entity, felid string, values interface{}) tiny.IQueryObject[T] {
 	tableName := reflect.TypeOf(entity).Elem().Name()
 	return this.inPartHandle(tableName, felid, values)
 }
-func (this *EntityObjectKing) inPartHandle(tableName string, felid string, values interface{}) tiny.IQueryObject {
+func (this *EntityObjectKing[T]) inPartHandle(tableName string, felid string, values interface{}) tiny.IQueryObject[T] {
 	qs := "\"" + tableName + "\".\"" + felid + "\" IN"
 	vs := make([]string, 0)
 
@@ -84,78 +83,78 @@ func (this *EntityObjectKing) inPartHandle(tableName string, felid string, value
 		s := reflect.ValueOf(values)
 		for i := 0; i < s.Len(); i++ {
 			value := s.Index(i)
-			vs = append(vs, this.interpreter.TransValueToStrByType(value, value.Kind().String()))
+			vs = append(vs, this.ctx.TransValueToStrByType(value, value.Kind().String()))
 		}
 
 		qs = qs + " ( " + strings.Join(vs, ",") + " )"
-		this.interpreter.AddToWhere(qs, true)
+		this.ctx.AddToWhere(qs, true)
 	}
 	return this
 }
 
-func (this *EntityObjectKing) wherePartHandle(tableName string, queryStr interface{}, args []interface{}) tiny.IQueryObject {
+func (this *EntityObjectKing[T]) wherePartHandle(tableName string, queryStr interface{}, args []interface{}) tiny.IQueryObject[T] {
 	if queryStr == nil || queryStr == "" {
 		return this
 	}
 	qs := queryStr.(string)
 	for _, value := range args {
-		qs = strings.Replace(qs, "?", this.interpreter.TransValueToStr(value), 1)
+		qs = strings.Replace(qs, "?", this.ctx.TransValueToStr(value), 1)
 	}
 	qs = strings.ReplaceAll(qs, "`", "")
-	qs = this.interpreter.FormatQuerySetence(qs, tableName)
-	this.interpreter.AddToWhere(qs, true)
+	qs = this.ctx.AddFieldTableName(qs, tableName)
+	this.ctx.AddToWhere(qs, true)
 	return this
 }
 
-func (this *EntityObjectKing) OrderBy(field interface{}) tiny.IQueryObject {
-	this.interpreter.AddToOrdereBy(field.(string), false)
+func (this *EntityObjectKing[T]) OrderBy(field interface{}) tiny.IQueryObject[T] {
+	this.ctx.AddToOrdereBy(field.(string), false, this.tableName)
 	return this
 }
 
-func (this *EntityObjectKing) OrderByDesc(field interface{}) tiny.IQueryObject {
-	this.interpreter.AddToOrdereBy(field.(string), true)
+func (this *EntityObjectKing[T]) OrderByDesc(field interface{}) tiny.IQueryObject[T] {
+	this.ctx.AddToOrdereBy(field.(string), true, this.tableName)
 	return this
 }
 
-func (this *EntityObjectKing) IndexOf() tiny.IQueryObject {
+func (this *EntityObjectKing[T]) IndexOf() tiny.IQueryObject[T] {
 	return this
 }
 
-func (this *EntityObjectKing) GroupBy(field interface{}) tiny.IResultQueryObject {
+func (this *EntityObjectKing[T]) GroupBy(field interface{}) tiny.IResultQueryObject[T] {
 	fStr := field.(string)
 
 	if len(this.joinEntities) > 0 {
 		for k := range this.joinEntities {
 			// 将所有外键表的Id加入到GroupBy 子句
-			this.interpreter.AddToGroupBy(this.interpreter.AddFieldTableName("Id", k))
+			this.ctx.AddToGroupBy("Id", k)
 		}
 	}
 	// 将主键表加入到GroupBy 子句
-	this.interpreter.AddToGroupBy(this.interpreter.AddFieldTableName("Id", this.tableName))
+	this.ctx.AddToGroupBy("Id", this.tableName)
 
 	if fStr != "Id" {
-		this.interpreter.AddToGroupBy(this.interpreter.AddFieldTableName(fStr, this.tableName))
+		this.ctx.AddToGroupBy(fStr, this.tableName)
 	}
 
 	return this
 }
 
-func (this *EntityObjectKing) Select(fields ...interface{}) tiny.IResultQueryObject {
+func (this *EntityObjectKing[T]) Select(fields ...interface{}) tiny.IResultQueryObject[T] {
 	list := make([]string, 0)
 	for _, item := range fields {
-		list = append(list, fmt.Sprintf("%s AS %s_%s", this.interpreter.AddFieldTableName(item.(string), this.tableName), this.tableName, item.(string)))
+		list = append(list, fmt.Sprintf("%s AS %s_%s", this.ctx.AddFieldTableName(item.(string), this.tableName), this.tableName, item.(string)))
 	}
-	this.interpreter.CleanSelectPart()
-	this.interpreter.AddToSelect(list)
+	this.ctx.CleanSelectPart()
+	this.ctx.AddToSelect(list)
 	return this
 }
 
-func (this *EntityObjectKing) Take(count int) tiny.ITakeChildQueryObject {
-	this.interpreter.AddToLimt("take", count)
+func (this *EntityObjectKing[T]) Take(count int) tiny.ITakeChildQueryObject[T] {
+	this.ctx.AddToLimt("take", count)
 	return this
 }
-func (this *EntityObjectKing) Skip(count int) tiny.IAssembleResultQuery {
-	this.interpreter.AddToLimt("skip", count)
+func (this *EntityObjectKing[T]) Skip(count int) tiny.IAssembleResultQuery[T] {
+	this.ctx.AddToLimt("skip", count)
 	return this
 }
 
@@ -163,23 +162,23 @@ func (this *EntityObjectKing) Skip(count int) tiny.IAssembleResultQuery {
 /*
 	fEntity 需要连接的实体， mField 主表的连接字段， fField 外联表的字段
 */
-func (this *EntityObjectKing) JoinOn(fEntity tiny.Entity, mField string, fField string) tiny.IQueryObject {
+func (this *EntityObjectKing[T]) JoinOn(fEntity tiny.Entity, mField string, fField string) tiny.IQueryObject[T] {
 	return this.joinHandle(this.tableName, fEntity, mField, fField)
 }
 
-func (this *EntityObjectKing) JoinOnWith(mEntity tiny.Entity, fEntity tiny.Entity, mField string, fField string) tiny.IQueryObject {
+func (this *EntityObjectKing[T]) JoinOnWith(mEntity tiny.Entity, fEntity tiny.Entity, mField string, fField string) tiny.IQueryObject[T] {
 	mTableName := mEntity.TableName()
 	return this.joinHandle(mTableName, fEntity, mField, fField)
 }
-func (this *EntityObjectKing) joinHandle(mTableName string, fEntity tiny.Entity, mField string, fField string) tiny.IQueryObject {
+func (this *EntityObjectKing[T]) joinHandle(mTableName string, fEntity tiny.Entity, mField string, fField string) tiny.IQueryObject[T] {
 	if len(this.joinEntities) == 0 {
 		mEntity := this.ctx.GetEntityInstance(mTableName)
-		mainTableFields := this.interpreter.GetSelectFieldList(mEntity.(tiny.Entity), mTableName)
-		this.interpreter.AddToSelect(mainTableFields)
+		mainTableFields := this.ctx.GetSelectFieldList(mEntity.(tiny.Entity), mTableName)
+		this.ctx.AddToSelect(mainTableFields)
 	}
 
-	fTableFields := this.interpreter.GetSelectFieldList(fEntity, fEntity.TableName())
-	this.interpreter.AddToSelect(fTableFields)
+	fTableFields := this.ctx.GetSelectFieldList(fEntity, fEntity.TableName())
+	this.ctx.AddToSelect(fTableFields)
 
 	this.joinEntities[fEntity.TableName()] = tinyMysql.JoinEntityItem{
 		Mkey:   mField,
@@ -187,29 +186,29 @@ func (this *EntityObjectKing) joinHandle(mTableName string, fEntity tiny.Entity,
 		Entity: fEntity,
 	}
 	sqlStr := fmt.Sprintf(" LEFT JOIN \"%s\" ON \"%s\".\"%s\" = \"%s\".\"%s\"", fEntity.TableName(), mTableName, mField, fEntity.TableName(), fField)
-	this.interpreter.AddToJoinOn(sqlStr)
+	this.ctx.AddToJoinOn(sqlStr)
 	return this
 }
 
-func (this *EntityObjectKing) Max() float64 {
-	this.interpreter.Clean()
+func (this *EntityObjectKing[T]) Max() float64 {
+	this.ctx.Clean()
 	return 0
 }
 
-func (this *EntityObjectKing) Min() float64 {
-	this.interpreter.Clean()
+func (this *EntityObjectKing[T]) Min() float64 {
+	this.ctx.Clean()
 	return 0
 }
-func (this *EntityObjectKing) Count() int {
+func (this *EntityObjectKing[T]) Count() int {
 	return this.CountArgs(fmt.Sprintf("\"%s\".\"Id\"", this.tableName))
 }
 
-func (this *EntityObjectKing) CountArgs(field string) int {
-	this.interpreter.CleanSelectPart()
+func (this *EntityObjectKing[T]) CountArgs(field string) int {
+	this.ctx.CleanSelectPart()
 	field = strings.ReplaceAll(field, "`", "\"")
-	this.interpreter.AddToSelect([]string{fmt.Sprintf("COUNT(%s)", field)})
-	sqlStr := this.interpreter.GetFinalSql(this.tableName, nil)
-	rows := this.ctx.Query(sqlStr, false)
+	this.ctx.AddToSelect([]string{fmt.Sprintf("COUNT(%s)", field)})
+	sqlStr := this.ctx.GetFinalSql(this.tableName, nil)
+	rows := this.ctx.Query(sqlStr)
 
 	result := 0
 	for _, rowData := range rows {
@@ -217,55 +216,51 @@ func (this *EntityObjectKing) CountArgs(field string) int {
 			result, _ = strconv.Atoi(cellData)
 		}
 	}
-	this.interpreter.Clean()
+	this.ctx.Clean()
 	return result
 }
 
-func (this *EntityObjectKing) Any() bool {
+func (this *EntityObjectKing[T]) Any() bool {
 	count := this.Count()
 	return count > 0
 }
 
-func (this *EntityObjectKing) First(entity interface{}) (bool, *tiny.Empty) {
-	mEntity := this.ctx.GetEntityInstance(this.tableName)
-	sqlStr := this.interpreter.GetFinalSql(this.tableName, mEntity.(tiny.Entity))
-	rows := this.ctx.Query(sqlStr, false)
+func (this *EntityObjectKing[T]) First() *T {
+	entity := new(T)
 
+	sqlStr := this.ctx.GetFinalSql(this.tableName, *entity)
+	rows := this.ctx.Query(sqlStr)
 	dataList := this.queryToDatas2(this.tableName, rows)
-
-	isNull := false
 
 	if len(dataList) > 0 {
 		jsonStr := tiny.JsonStringify(dataList[0])
 		json.Unmarshal([]byte(jsonStr), entity)
 	} else {
 		entity = nil
-		isNull = true
 	}
 
 	this.InitEntityObj(this.tableName)
-	this.interpreter.Clean()
+	this.ctx.Clean()
 
-	if isNull {
-		return isNull, &tiny.Empty{}
-	} else {
-		return isNull, nil
-	}
+	return entity
 }
 
-func (this *EntityObjectKing) ToList(list interface{}) {
-	mEntity := this.ctx.GetEntityInstance(this.tableName)
-	sqlStr := this.interpreter.GetFinalSql(this.tableName, mEntity.(tiny.Entity))
-	rows := this.ctx.Query(sqlStr, false)
+func (this *EntityObjectKing[T]) ToList() []T {
+	list := make([]T, 0)
+	mEntity := new(T)
+	sqlStr := this.ctx.GetFinalSql(this.tableName, *mEntity)
+	rows := this.ctx.Query(sqlStr)
 	dataList := this.queryToDatas2(this.tableName, rows)
 
 	jsonStr := tiny.JsonStringify(dataList)
-	json.Unmarshal([]byte(jsonStr), list)
+	json.Unmarshal([]byte(jsonStr), &list)
 	this.InitEntityObj(this.tableName)
-	this.interpreter.Clean()
+	this.ctx.Clean()
+
+	return list
 }
 
-func (this *EntityObjectKing) queryToDatas2(tableName string, rows map[int]map[string]string) []map[string]interface{} {
+func (this *EntityObjectKing[T]) queryToDatas2(tableName string, rows map[int]map[string]string) []map[string]interface{} {
 	mEntity := this.ctx.GetEntityInstance(tableName)
 	mappingList := this.getEntityMappingFields(mEntity)
 	aesList := this.getEntityAESFields(mEntity)
@@ -320,10 +315,10 @@ func (this *EntityObjectKing) queryToDatas2(tableName string, rows map[int]map[s
 					if vv == nil {
 						continue
 					}
-					dataItem[item] = this.interpreter.AesDecrypt(vv.(string), this.interpreter.AESKey)
+					dataItem[item] = this.ctx.AesDecrypt(vv.(string), this.ctx.AESKey)
 
 				} else {
-					dataItem[item] = this.interpreter.AesDecrypt(dataItem[item].(string), this.interpreter.AESKey)
+					dataItem[item] = this.ctx.AesDecrypt(dataItem[item].(string), this.ctx.AESKey)
 				}
 			}
 		}
@@ -332,7 +327,7 @@ func (this *EntityObjectKing) queryToDatas2(tableName string, rows map[int]map[s
 	return dataList
 }
 
-func (this *EntityObjectKing) formatToData(tableName string, rows map[int]map[string]string) []map[string]interface{} {
+func (this *EntityObjectKing[T]) formatToData(tableName string, rows map[int]map[string]string) []map[string]interface{} {
 	dataList := make([]map[string]interface{}, 0)
 	fieldTypeInfos := this.getEntityFieldInfo(tableName)
 
@@ -350,7 +345,7 @@ func (this *EntityObjectKing) formatToData(tableName string, rows map[int]map[st
 			fieldName := tmp[1]
 			fdType := fieldTypeInfos[fieldName]
 
-			dataMap[fieldName] = this.interpreter.ConverNilValue(fmt.Sprintf("%s", fdType.Type), value)
+			dataMap[fieldName] = this.ctx.ConverNilValue(fmt.Sprintf("%s", fdType.Type), value)
 		}
 
 		exist := false
@@ -370,7 +365,7 @@ func (this *EntityObjectKing) formatToData(tableName string, rows map[int]map[st
 	return dataList
 }
 
-func (this *EntityObjectKing) getEntityFieldInfo(tableName string) map[string]reflect.StructField {
+func (this *EntityObjectKing[T]) getEntityFieldInfo(tableName string) map[string]reflect.StructField {
 	result := make(map[string]reflect.StructField)
 	entity := this.ctx.GetEntityInstance(tableName)
 	eType := reflect.TypeOf(entity)
@@ -382,7 +377,7 @@ func (this *EntityObjectKing) getEntityFieldInfo(tableName string) map[string]re
 	return result
 }
 
-func (this *EntityObjectKing) joinDataFilter(arr []map[string]interface{}, mKeyValue interface{}, fKey string) []map[string]interface{} {
+func (this *EntityObjectKing[T]) joinDataFilter(arr []map[string]interface{}, mKeyValue interface{}, fKey string) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0)
 	for _, item := range arr {
 		if fmt.Sprintf("%s", item[fKey]) == fmt.Sprintf("%s", mKeyValue) {
@@ -392,17 +387,17 @@ func (this *EntityObjectKing) joinDataFilter(arr []map[string]interface{}, mKeyV
 	return result
 }
 
-func (this *EntityObjectKing) getEntityAESFields(entity interface{}) []string {
+func (this *EntityObjectKing[T]) getEntityAESFields(entity interface{}) []string {
 	result := make([]string, 0)
 	eType := reflect.TypeOf(entity)
 	entityPtrValueElem := reflect.ValueOf(reflect.New(eType).Interface()).Elem()
 	for i := 0; i < entityPtrValueElem.NumField(); i++ {
 		fdType := eType.Field(i)
-		defineStr, has := this.interpreter.GetFieldDefineStr(fdType)
+		defineStr, has := this.ctx.GetFieldDefineStr(fdType)
 		if !has {
 			continue
 		}
-		defineMap := this.interpreter.FormatDefine(defineStr)
+		defineMap := this.ctx.FormatDefine(defineStr)
 		_, hasAES := defineMap[tagDefine.AES]
 		if hasAES {
 			result = append(result, fdType.Name)
@@ -411,17 +406,17 @@ func (this *EntityObjectKing) getEntityAESFields(entity interface{}) []string {
 	return result
 }
 
-func (this *EntityObjectKing) getEntityMappingFields(entity interface{}) map[string]string {
+func (this *EntityObjectKing[T]) getEntityMappingFields(entity interface{}) map[string]string {
 	result := make(map[string]string)
 	eType := reflect.TypeOf(entity)
 	entityPtrValueElem := reflect.ValueOf(reflect.New(eType).Interface()).Elem()
 	for i := 0; i < entityPtrValueElem.NumField(); i++ {
 		fdType := eType.Field(i)
-		defineStr, has := this.interpreter.GetFieldDefineStr(fdType)
+		defineStr, has := this.ctx.GetFieldDefineStr(fdType)
 		if !has {
 			continue
 		}
-		defineMap := this.interpreter.FormatDefine(defineStr)
+		defineMap := this.ctx.FormatDefine(defineStr)
 		fd := entityPtrValueElem.Field(i)
 		mapping, has := defineMap[tagDefine.Mapping]
 		if has {

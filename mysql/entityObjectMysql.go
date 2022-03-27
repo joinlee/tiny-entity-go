@@ -17,15 +17,13 @@ type JoinEntityItem struct {
 	Entity interface{}
 }
 
-type EntityObjectMysql[T any] struct {
-	ctx         *MysqlDataContext
-	interpreter *tiny.Interpreter
-
+type EntityObjectMysql[T tiny.Entity] struct {
+	ctx          *MysqlDataContext
 	tableName    string
 	joinEntities map[string]JoinEntityItem
 }
 
-func NewEntityObjectMysql[T any](ctx *MysqlDataContext, tableName string) *EntityObjectMysql[T] {
+func NewEntityObjectMysql[T tiny.Entity](ctx *MysqlDataContext, tableName string) *EntityObjectMysql[T] {
 	entity := &EntityObjectMysql[T]{}
 	entity.ctx = ctx
 	entity.tableName = tableName
@@ -35,7 +33,6 @@ func NewEntityObjectMysql[T any](ctx *MysqlDataContext, tableName string) *Entit
 }
 
 func (this *EntityObjectMysql[T]) InitEntityObj(tableName string) {
-	this.interpreter = tiny.NewInterpreter(tableName)
 	this.joinEntities = make(map[string]JoinEntityItem)
 }
 
@@ -48,12 +45,12 @@ func (this *EntityObjectMysql[T]) GetIQueryObject() tiny.IQueryObject[T] {
 }
 
 func (this *EntityObjectMysql[T]) And() tiny.IQueryObject[T] {
-	this.interpreter.AddToWhere("AND", false)
+	this.ctx.AddToWhere("AND", false)
 	return this
 }
 
 func (this *EntityObjectMysql[T]) Or() tiny.IQueryObject[T] {
-	this.interpreter.AddToWhere("OR", false)
+	this.ctx.AddToWhere("OR", false)
 	return this
 }
 
@@ -69,7 +66,7 @@ func (this *EntityObjectMysql[T]) Where(queryStr interface{}, args ...interface{
 entity 表示查询外键表的条件
 ex： ctx.User.WhereWith(ctx.Account, "Id = ?", user.Id).Any() */
 func (this *EntityObjectMysql[T]) WhereWith(entity tiny.Entity, queryStr interface{}, args ...interface{}) tiny.IQueryObject[T] {
-	tableName := reflect.TypeOf(entity).Elem().Name()
+	tableName := this.ctx.GetEntityName(entity)
 	return this.wherePartHandle(tableName, queryStr, args)
 }
 
@@ -89,11 +86,11 @@ func (this *EntityObjectMysql[T]) inPartHandle(tableName string, felid string, v
 		s := reflect.ValueOf(values)
 		for i := 0; i < s.Len(); i++ {
 			value := s.Index(i)
-			vs = append(vs, this.interpreter.TransValueToStrByType(value, value.Kind().String()))
+			vs = append(vs, this.ctx.TransValueToStrByType(value, value.Kind().String()))
 		}
 
 		qs = qs + " ( " + strings.Join(vs, ",") + " )"
-		this.interpreter.AddToWhere(qs, true)
+		this.ctx.AddToWhere(qs, true)
 	}
 	return this
 }
@@ -104,20 +101,20 @@ func (this *EntityObjectMysql[T]) wherePartHandle(tableName string, queryStr int
 	}
 	qs := queryStr.(string)
 	for _, value := range args {
-		qs = strings.Replace(qs, "?", this.interpreter.TransValueToStr(value), 1)
+		qs = strings.Replace(qs, "?", this.ctx.TransValueToStr(value), 1)
 	}
-	qs = this.interpreter.FormatQuerySetence(qs, tableName)
-	this.interpreter.AddToWhere(qs, true)
+	qs = this.ctx.AddFieldTableName(qs, tableName)
+	this.ctx.AddToWhere(qs, true)
 	return this
 }
 
 func (this *EntityObjectMysql[T]) OrderBy(field interface{}) tiny.IQueryObject[T] {
-	this.interpreter.AddToOrdereBy(field.(string), false)
+	this.ctx.AddToOrdereBy(field.(string), false, this.tableName)
 	return this
 }
 
 func (this *EntityObjectMysql[T]) OrderByDesc(field interface{}) tiny.IQueryObject[T] {
-	this.interpreter.AddToOrdereBy(field.(string), true)
+	this.ctx.AddToOrdereBy(field.(string), true, this.tableName)
 	return this
 }
 
@@ -126,26 +123,26 @@ func (this *EntityObjectMysql[T]) IndexOf() tiny.IQueryObject[T] {
 }
 
 func (this *EntityObjectMysql[T]) GroupBy(field interface{}) tiny.IResultQueryObject[T] {
-	this.interpreter.AddToGroupBy(field.(string))
+	this.ctx.AddToGroupBy(field.(string), this.tableName)
 	return this
 }
 
 func (this *EntityObjectMysql[T]) Select(fields ...interface{}) tiny.IResultQueryObject[T] {
 	list := make([]string, 0)
 	for _, item := range fields {
-		list = append(list, fmt.Sprintf("%s AS %s_%s", this.interpreter.AddFieldTableName(item.(string), this.tableName), this.tableName, item.(string)))
+		list = append(list, fmt.Sprintf("%s AS %s_%s", this.ctx.AddFieldTableName(item.(string), this.tableName), this.tableName, item.(string)))
 	}
-	this.interpreter.CleanSelectPart()
-	this.interpreter.AddToSelect(list)
+	this.ctx.CleanSelectPart()
+	this.ctx.AddToSelect(list)
 	return this
 }
 
 func (this *EntityObjectMysql[T]) Take(count int) tiny.ITakeChildQueryObject[T] {
-	this.interpreter.AddToLimt("take", count)
+	this.ctx.AddToLimt("take", count)
 	return this
 }
 func (this *EntityObjectMysql[T]) Skip(count int) tiny.IAssembleResultQuery[T] {
-	this.interpreter.AddToLimt("skip", count)
+	this.ctx.AddToLimt("skip", count)
 	return this
 }
 
@@ -163,13 +160,13 @@ func (this *EntityObjectMysql[T]) JoinOnWith(mEntity tiny.Entity, fEntity tiny.E
 }
 func (this *EntityObjectMysql[T]) joinHandle(mTableName string, fEntity tiny.Entity, mField string, fField string) tiny.IQueryObject[T] {
 	if len(this.joinEntities) == 0 {
-		mEntity := this.ctx.GetEntityInstance(mTableName)
-		mainTableFields := this.interpreter.GetSelectFieldList(mEntity.(tiny.Entity), mTableName)
-		this.interpreter.AddToSelect(mainTableFields)
+		mEntity := new(T)
+		mainTableFields := this.ctx.GetSelectFieldList(*mEntity, mTableName)
+		this.ctx.AddToSelect(mainTableFields)
 	}
 
-	fTableFields := this.interpreter.GetSelectFieldList(fEntity, fEntity.TableName())
-	this.interpreter.AddToSelect(fTableFields)
+	fTableFields := this.ctx.GetSelectFieldList(fEntity, fEntity.TableName())
+	this.ctx.AddToSelect(fTableFields)
 
 	this.joinEntities[fEntity.TableName()] = JoinEntityItem{
 		Mkey:   mField,
@@ -177,17 +174,17 @@ func (this *EntityObjectMysql[T]) joinHandle(mTableName string, fEntity tiny.Ent
 		Entity: fEntity,
 	}
 	sqlStr := fmt.Sprintf(" LEFT JOIN `%s` ON `%s`.`%s` = `%s`.`%s`", fEntity.TableName(), mTableName, mField, fEntity.TableName(), fField)
-	this.interpreter.AddToJoinOn(sqlStr)
+	this.ctx.AddToJoinOn(sqlStr)
 	return this
 }
 
 func (this *EntityObjectMysql[T]) Max() float64 {
-	this.interpreter.Clean()
+	this.ctx.Clean()
 	return 0
 }
 
 func (this *EntityObjectMysql[T]) Min() float64 {
-	this.interpreter.Clean()
+	this.ctx.Clean()
 	return 0
 }
 func (this *EntityObjectMysql[T]) Count() int {
@@ -195,10 +192,10 @@ func (this *EntityObjectMysql[T]) Count() int {
 }
 
 func (this *EntityObjectMysql[T]) CountArgs(field string) int {
-	this.interpreter.CleanSelectPart()
-	this.interpreter.AddToSelect([]string{fmt.Sprintf("COUNT(%s)", field)})
-	sqlStr := this.interpreter.GetFinalSql(this.tableName, nil)
-	rows := this.ctx.Query(sqlStr, false)
+	this.ctx.CleanSelectPart()
+	this.ctx.AddToSelect([]string{fmt.Sprintf("COUNT(%s)", field)})
+	sqlStr := this.ctx.GetFinalSql(this.tableName, nil)
+	rows := this.ctx.Query(sqlStr)
 
 	result := 0
 	for _, rowData := range rows {
@@ -206,7 +203,7 @@ func (this *EntityObjectMysql[T]) CountArgs(field string) int {
 			result, _ = strconv.Atoi(cellData)
 		}
 	}
-	this.interpreter.Clean()
+	this.ctx.Clean()
 	return result
 }
 
@@ -215,49 +212,45 @@ func (this *EntityObjectMysql[T]) Any() bool {
 	return count > 0
 }
 
-func (this *EntityObjectMysql[T]) First(entity *T) (bool, *tiny.Empty) {
-	mEntity := this.ctx.GetEntityInstance(this.tableName)
-	sqlStr := this.interpreter.GetFinalSql(this.tableName, mEntity.(tiny.Entity))
-	rows := this.ctx.Query(sqlStr, false)
+func (this *EntityObjectMysql[T]) First() *T {
+	entity := new(T)
 
+	sqlStr := this.ctx.GetFinalSql(this.tableName, *entity)
+	rows := this.ctx.Query(sqlStr)
 	dataList := this.queryToDatas2(this.tableName, rows)
-
-	isNull := false
 
 	if len(dataList) > 0 {
 		jsonStr := tiny.JsonStringify(dataList[0])
 		json.Unmarshal([]byte(jsonStr), entity)
 	} else {
 		entity = nil
-		isNull = true
 	}
 
 	this.InitEntityObj(this.tableName)
-	this.interpreter.Clean()
+	this.ctx.Clean()
 
-	if isNull {
-		return isNull, &tiny.Empty{}
-	} else {
-		return isNull, nil
-	}
+	return entity
 }
 
-func (this *EntityObjectMysql[T]) ToList(list *[]T) {
-	mEntity := this.ctx.GetEntityInstance(this.tableName)
-	sqlStr := this.interpreter.GetFinalSql(this.tableName, mEntity.(tiny.Entity))
-	rows := this.ctx.Query(sqlStr, false)
+func (this *EntityObjectMysql[T]) ToList() []T {
+	list := make([]T, 0)
+	mEntity := new(T)
+	sqlStr := this.ctx.GetFinalSql(this.tableName, *mEntity)
+	rows := this.ctx.Query(sqlStr)
 	dataList := this.queryToDatas2(this.tableName, rows)
 
 	jsonStr := tiny.JsonStringify(dataList)
-	json.Unmarshal([]byte(jsonStr), list)
+	json.Unmarshal([]byte(jsonStr), &list)
 	this.InitEntityObj(this.tableName)
-	this.interpreter.Clean()
+	this.ctx.Clean()
+
+	return list
 }
 
 func (this *EntityObjectMysql[T]) queryToDatas2(tableName string, rows map[int]map[string]string) []map[string]interface{} {
-	mEntity := this.ctx.GetEntityInstance(tableName)
-	mappingList := this.getEntityMappingFields(mEntity)
-	aesList := this.getEntityAESFields(mEntity)
+	mEntity := new(T)
+	mappingList := this.getEntityMappingFields(*mEntity)
+	aesList := this.getEntityAESFields(*mEntity)
 
 	dataList := this.formatToData(tableName, rows)
 
@@ -309,10 +302,10 @@ func (this *EntityObjectMysql[T]) queryToDatas2(tableName string, rows map[int]m
 					if vv == nil {
 						continue
 					}
-					dataItem[item] = this.interpreter.AesDecrypt(vv.(string), this.interpreter.AESKey)
+					dataItem[item] = this.ctx.AesDecrypt(vv.(string), this.ctx.AESKey)
 
 				} else {
-					dataItem[item] = this.interpreter.AesDecrypt(dataItem[item].(string), this.interpreter.AESKey)
+					dataItem[item] = this.ctx.AesDecrypt(dataItem[item].(string), this.ctx.AESKey)
 				}
 			}
 		}
@@ -320,37 +313,6 @@ func (this *EntityObjectMysql[T]) queryToDatas2(tableName string, rows map[int]m
 
 	return dataList
 }
-
-// func (this *EntityObjectMysql) queryToDatas(mEntity interface{}, rows map[int]map[string]string) []map[string]interface{} {
-// 	mappingList := this.getEntityMappingFields(mEntity)
-
-// 	dataList := this.formatToData(this.tableName, rows)
-// 	for _, dataItem := range dataList {
-// 		for mappingTable, mtype := range mappingList {
-// 			mappingDatas := this.formatToData(mappingTable, rows)
-// 			joinObj := this.joinEntities[mappingTable]
-
-// 			mkeyValue := reflect.ValueOf(dataItem[joinObj.Mkey])
-// 			mkeyValueType := reflect.TypeOf(dataItem[joinObj.Mkey])
-// 			if mkeyValueType == nil {
-// 				continue
-// 			}
-// 			if mkeyValueType.Kind() == reflect.Ptr {
-// 				mkeyValue = mkeyValue.Elem()
-// 			}
-// 			objs := this.joinDataFilter(mappingDatas, mkeyValue, joinObj.Fkey)
-// 			if mtype == "one" {
-// 				if len(mappingDatas) > 0 && len(objs) > 0 {
-// 					dataItem[mappingTable] = objs[0]
-// 				}
-// 			} else if mtype == "many" {
-// 				dataItem[mappingTable] = objs
-// 			}
-// 		}
-// 	}
-
-// 	return dataList
-// }
 
 func (this *EntityObjectMysql[T]) formatToData(tableName string, rows map[int]map[string]string) []map[string]interface{} {
 	dataList := make([]map[string]interface{}, 0)
@@ -370,7 +332,7 @@ func (this *EntityObjectMysql[T]) formatToData(tableName string, rows map[int]ma
 			fieldName := tmp[1]
 			fdType := fieldTypeInfos[fieldName]
 
-			dataMap[fieldName] = this.interpreter.ConverNilValue(fmt.Sprintf("%s", fdType.Type), value)
+			dataMap[fieldName] = this.ctx.ConverNilValue(fmt.Sprintf("%s", fdType.Type), value)
 		}
 
 		exist := false
@@ -392,11 +354,11 @@ func (this *EntityObjectMysql[T]) formatToData(tableName string, rows map[int]ma
 
 func (this *EntityObjectMysql[T]) getEntityFieldInfo(tableName string) map[string]reflect.StructField {
 	result := make(map[string]reflect.StructField)
-	entity := this.ctx.GetEntityInstance(tableName)
-	eType := reflect.TypeOf(entity)
-	ev := reflect.ValueOf(reflect.New(eType).Interface()).Elem()
+	entity := new(T)
+	et := reflect.TypeOf(entity).Elem()
+	ev := reflect.ValueOf(entity).Elem()
 	for i := 0; i < ev.NumField(); i++ {
-		fdType := eType.Field(i)
+		fdType := et.Field(i)
 		result[fdType.Name] = fdType
 	}
 	return result
@@ -412,17 +374,17 @@ func (this *EntityObjectMysql[T]) joinDataFilter(arr []map[string]interface{}, m
 	return result
 }
 
-func (this *EntityObjectMysql[T]) getEntityAESFields(entity interface{}) []string {
+func (this *EntityObjectMysql[T]) getEntityAESFields(entity T) []string {
 	result := make([]string, 0)
 	eType := reflect.TypeOf(entity)
 	entityPtrValueElem := reflect.ValueOf(reflect.New(eType).Interface()).Elem()
 	for i := 0; i < entityPtrValueElem.NumField(); i++ {
 		fdType := eType.Field(i)
-		defineStr, has := this.interpreter.GetFieldDefineStr(fdType)
+		defineStr, has := this.ctx.GetFieldDefineStr(fdType)
 		if !has {
 			continue
 		}
-		defineMap := this.interpreter.FormatDefine(defineStr)
+		defineMap := this.ctx.FormatDefine(defineStr)
 		_, hasAES := defineMap[tagDefine.AES]
 		if hasAES {
 			result = append(result, fdType.Name)
@@ -431,17 +393,17 @@ func (this *EntityObjectMysql[T]) getEntityAESFields(entity interface{}) []strin
 	return result
 }
 
-func (this *EntityObjectMysql[T]) getEntityMappingFields(entity interface{}) map[string]string {
+func (this *EntityObjectMysql[T]) getEntityMappingFields(entity T) map[string]string {
 	result := make(map[string]string)
 	eType := reflect.TypeOf(entity)
 	entityPtrValueElem := reflect.ValueOf(reflect.New(eType).Interface()).Elem()
 	for i := 0; i < entityPtrValueElem.NumField(); i++ {
 		fdType := eType.Field(i)
-		defineStr, has := this.interpreter.GetFieldDefineStr(fdType)
+		defineStr, has := this.ctx.GetFieldDefineStr(fdType)
 		if !has {
 			continue
 		}
-		defineMap := this.interpreter.FormatDefine(defineStr)
+		defineMap := this.ctx.FormatDefine(defineStr)
 		fd := entityPtrValueElem.Field(i)
 		mapping, has := defineMap[tagDefine.Mapping]
 		if has {

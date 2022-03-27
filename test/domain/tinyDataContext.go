@@ -13,7 +13,7 @@ type TinyDataContext struct {
 
 func NewTinyDataContext() *TinyDataContext {
 	ctx := &TinyDataContext{}
-	ctx.MysqlDataContext = tinyMysql.NewMysqlDataContext(tinyMysql.MysqlDataOption{
+	ctx.MysqlDataContext = tinyMysql.NewMysqlDataContext(tiny.DataContextOptions{
 		Host:            "localhost",
 		Port:            "3306",
 		Username:        "root",
@@ -32,7 +32,6 @@ func (this *TinyDataContext) CreateDatabase() {
 	this.MysqlDataContext.CreateDatabase()
 	this.CreateTable(this.Account)
 }
-
 func (this *TinyDataContext) GetEntityList() map[string]tiny.Entity {
 	list := make(map[string]tiny.Entity)
 	list["Account"] = this.Account

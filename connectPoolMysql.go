@@ -1,4 +1,4 @@
-package tinyMysql
+package tiny
 
 import (
 	"database/sql"
@@ -9,22 +9,22 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var connectPool *connectPoolMysql
+var connectPool *dbConnectPool
 
-type connectPoolMysql struct {
+type dbConnectPool struct {
 	dbMap map[string]*sql.DB
 	m     sync.Mutex
 }
 
-func GetMysqlPool() *connectPoolMysql {
+func GetMysqlPool() *dbConnectPool {
 	initConnectPoolMysql()
 	return connectPool
 }
 
 func initConnectPoolMysql() {
 	if connectPool == nil {
-		fmt.Println("initConnectPoolMysql +++++++++++")
-		connectPool = new(connectPoolMysql)
+		fmt.Println("initConnectPool +++++++++++")
+		connectPool = new(dbConnectPool)
 		connectPool.dbMap = make(map[string]*sql.DB)
 	}
 }

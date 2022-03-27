@@ -33,7 +33,7 @@ func NewInterpreterKing(tableName string) *InterpreterKing {
 	interpreter.limt = make(map[string]int)
 	interpreter.joinOnPart = make([]string, 0)
 	interpreter.tableName = tableName
-	interpreter.AESKey = AESKey
+	// interpreter.AESKey = AESKey
 	return interpreter
 }
 

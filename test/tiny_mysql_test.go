@@ -2,15 +2,22 @@ package test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
+	"github.com/joinlee/tiny-entity-go"
 	"github.com/joinlee/tiny-entity-go/test/domain"
 	"github.com/joinlee/tiny-entity-go/test/domain/models"
 	"github.com/joinlee/tiny-entity-go/utils"
 )
 
+func SetEnv() {
+	os.Setenv("TINY_LOG", "ON")
+}
+
 func TestGCTX(t *testing.T) {
-	codeGenerator := GetCodeGenerator()
+	ctx := domain.NewTinyDataContext()
+	codeGenerator := GetCodeGenerator(ctx)
 	codeGenerator.GenerateCtxFile()
 }
 
@@ -21,31 +28,51 @@ func TestGDB(t *testing.T) {
 
 func TestGOP(t *testing.T) {
 	ctx := domain.NewTinyDataContext()
-	codeGenerator := GetCodeGenerator()
-	codeGenerator.AutoMigration(ctx)
+	codeGenerator := GetCodeGenerator(ctx)
+	codeGenerator.AutoMigration()
 }
 
 func TestCreate(t *testing.T) {
+	SetEnv()
 	ctx := domain.NewTinyDataContext()
 
-	account := new(models.Account)
-	account.Id = utils.GetGuid()
-	account.Username = "likecheng"
-	account.Password = "123"
-	account.Status = ""
+	tiny.Transaction(ctx, func(ctx *domain.TinyDataContext) {
+		ctx.DeleteWith(ctx.Account, "")
 
-	ctx.Create(account)
+		account := new(models.Account)
+		account.Id = utils.GetGuid()
+		account.Username = "likecheng"
+		account.Password = "123"
+		account.Status = ""
 
-	targetAccount := ctx.Account.Where("Id = ?", account.Id).First()
+		ctx.Create(account)
 
-	if targetAccount.Id != account.Id {
-		t.Errorf("input: %s, output: %s", account.Id, targetAccount.Id)
-	}
+		targetAccount := ctx.Account.Where("Id = ?", account.Id).First()
 
-	targetAccount = ctx.Account.Where("Id = ?", "123").First()
-	if targetAccount != nil {
-		t.Errorf("targetAccount is not nil ")
-	}
+		if targetAccount.Id != account.Id {
+			t.Errorf("input: %s, output: %s", account.Id, targetAccount.Id)
+		}
+
+		output := ctx.Account.Where("Id = ?", "123").First()
+		if output != nil {
+			t.Errorf("targetAccount is not nil ")
+		}
+
+		targetAccount.Username = "lkc"
+		ctx.Update(targetAccount)
+
+		output2 := ctx.Account.Where("Id = ?", account.Id).First()
+		if output2.Username != "lkc" {
+			t.Errorf("output2.Username != lkc")
+		}
+
+		ctx.Delete(targetAccount)
+
+		output3 := ctx.Account.Count()
+		if output3 != 0 {
+			t.Errorf("output3 is not 0")
+		}
+	})
 }
 
 func TestToList(t *testing.T) {

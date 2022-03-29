@@ -40,3 +40,12 @@ type IDataContext interface {
 	//获取上下文实体列表
 	GetEntityList() map[string]Entity
 }
+
+type IDataContextInterpreter interface {
+	IDataContext
+	GetEntityFieldsDefineInfo(entity interface{}) map[string]map[string]interface{}
+	AlterTableDropColumn(tableName string, columnName string) string
+	AlterTableAddColumn(tableName string, columnName string) string
+	GetColumnSqls(defineMap map[string]interface{}, fieldName string, action string, delIndexSql bool, tableName string) (columnSql string, indexSql string)
+	AlterTableAlterColumn(tableName string, oldColumnName string, newColumnName string, changeSql string) string
+}

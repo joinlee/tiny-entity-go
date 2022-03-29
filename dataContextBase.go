@@ -260,12 +260,15 @@ func (this *DataContextBase) DeleteSql(entity Entity) string {
 //通过指定条件删除数据
 func (this *DataContextBase) DeleteWithSql(entity Entity, queryStr interface{}, args ...interface{}) string {
 	qs := queryStr.(string)
-	for _, value := range args {
-		qs = strings.Replace(qs, "?", this.TransValueToStr(value), 1)
+	tableName := this.GetEntityName(entity)
+	if qs != "" {
+		for _, value := range args {
+			qs = strings.Replace(qs, "?", this.TransValueToStr(value), 1)
+		}
+		qs = "WHERE " + qs
 	}
 
-	tableName := this.GetEntityName(entity)
-	sql := fmt.Sprintf("DELETE FROM `%s` WHERE %s ;", tableName, qs)
+	sql := fmt.Sprintf("DELETE FROM `%s` %s;", tableName, qs)
 
 	return sql
 }

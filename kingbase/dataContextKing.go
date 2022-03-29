@@ -229,11 +229,77 @@ func (this *KingDataContext) RegistModel(entity tiny.Entity) {
 	this.entityRefMap[t.Name()] = t
 }
 
-func (this *KingDataContext) GetEntityInstance(entityName string) interface{} {
-	entityType, ok := this.entityRefMap[entityName]
-	if !ok {
-		return nil
+// func (this *KingDataContext) GetEntityInstance(entityName string) interface{} {
+// 	entityType, ok := this.entityRefMap[entityName]
+// 	if !ok {
+// 		return nil
+// 	}
+
+// 	return reflect.New(entityType).Elem().Interface()
+// }
+
+func (this *KingDataContext) GetEntityFieldsDefineInfo(entity interface{}) map[string]map[string]interface{} {
+	result := make(map[string]map[string]interface{})
+	et := reflect.TypeOf(entity).Elem()
+	for i := 0; i < et.NumField(); i++ {
+		fd := et.Field(i)
+		defineStr, has := this.GetFieldDefineStr(fd)
+		if !has {
+			continue
+		}
+		defineMap := this.FormatDefine(defineStr)
+
+		_, isMapping := defineMap[tagDefine.Mapping]
+		if isMapping {
+			continue
+		}
+
+		for key, v := range defineMap {
+			if v == "" {
+				defineMap[key] = true
+			}
+		}
+		result[fd.Name] = defineMap
 	}
 
-	return reflect.New(entityType).Elem().Interface()
+	return result
+}
+
+func (this *KingDataContext) AlterTableDropColumn(tableName string, columnName string) string {
+	return fmt.Sprintf("ALTER TABLE \"%s\" DROP COLUMN \"%s\"; ", tableName, columnName)
+}
+
+func (this *KingDataContext) AlterTableAddColumn(tableName string, columnName string) string {
+	return fmt.Sprintf("ALTER TABLE \"%s\" ADD COLUMN \"%s\"; ", tableName, columnName)
+}
+
+func (this *KingDataContext) AlterTableAlterColumn(tableName string, oldColumnName string, newColumnName string, changeSql string) string {
+	sql := ""
+	if oldColumnName != newColumnName {
+		sql = fmt.Sprintf("ALTER TABLE \"%s\" RENAME COLUMN \"%s\" TO \"%s\"; ", tableName, oldColumnName, newColumnName)
+	}
+
+	changeFieldItems := make([]string, 0)
+	tmp := strings.Split(changeSql, " ")
+	for i, v := range tmp {
+		if i == 0 {
+			changeFieldItems = append(changeFieldItems, fmt.Sprintf("ALTER COLUMN \"%s\" TYPE %s", oldColumnName, v))
+		}
+
+		if v == "NULL" {
+			if tmp[i-1] == "NOT" {
+				changeFieldItems = append(changeFieldItems, fmt.Sprintf("ALTER COLUMN \"%s\" SET NOT NULL", oldColumnName))
+			} else {
+				changeFieldItems = append(changeFieldItems, fmt.Sprintf("ALTER COLUMN \"%s\" DROP NOT NULL", oldColumnName))
+			}
+		}
+
+		if v == "DEFAULT" {
+			changeFieldItems = append(changeFieldItems, fmt.Sprintf("ALTER COLUMN \"%s\" SET DEFAULT %s", oldColumnName, tmp[i+1]))
+		}
+	}
+
+	sql += fmt.Sprintf("ALTER TABLE \"%s\" %s", tableName, strings.Join(changeFieldItems, ","))
+
+	return sql
 }

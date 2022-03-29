@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/joinlee/tiny-entity-go"
+	"github.com/joinlee/tiny-entity-go/tagDefine"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -123,4 +124,47 @@ func (this *MysqlDataContext) CreateTable(entity tiny.Entity) {
 func (this *MysqlDataContext) RegistModel(entity tiny.Entity) {
 	t := reflect.TypeOf(entity).Elem()
 	this.entityRefMap[t.Name()] = t
+}
+
+func (t *MysqlDataContext) GetEntityFieldsDefineInfo(entity interface{}) map[string]map[string]interface{} {
+	result := make(map[string]map[string]interface{})
+	et := reflect.TypeOf(entity).Elem()
+	for i := 0; i < et.NumField(); i++ {
+		fd := et.Field(i)
+		defineStr, has := t.GetFieldDefineStr(fd)
+		if !has {
+			continue
+		}
+		defineMap := t.FormatDefine(defineStr)
+
+		_, isMapping := defineMap[tagDefine.Mapping]
+		if isMapping {
+			continue
+		}
+
+		for key, v := range defineMap {
+			if v == "" {
+				defineMap[key] = true
+			}
+		}
+		result[fd.Name] = defineMap
+	}
+
+	return result
+}
+
+func (t *MysqlDataContext) AlterTableDropColumn(tableName string, columnName string) string {
+	return fmt.Sprintf("ALTER TABLE `%s` Drop `%s`; ", tableName, columnName)
+}
+
+func (t *MysqlDataContext) AlterTableAddColumn(tableName string, columnName string) string {
+	return fmt.Sprintf("ALTER TABLE `%s` Add %s; ", tableName, columnName)
+}
+
+func (t *MysqlDataContext) AlterTableAlterColumn(tableName string, oldColumnName string, newColumnName string, changeSql string) string {
+	return fmt.Sprintf("ALTER TABLE `%s` CHANGE `%s` `%s` %s; ", tableName, oldColumnName, newColumnName, changeSql)
+}
+
+func (this *MysqlDataContext) GetColumnSqls(defineMap map[string]interface{}, fieldName string, action string, delIndexSql bool, tableName string) (columnSql string, indexSql string) {
+	return this.DataContextBase.GetColumnSqls(defineMap, fieldName, action, delIndexSql, tableName)
 }

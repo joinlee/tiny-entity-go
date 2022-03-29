@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -21,6 +22,14 @@ func ReadFile(fileName string) string {
 		fmt.Println("read fail", err)
 	}
 	return string(f)
+}
+
+func WriteFile(cont string, fileName string) {
+	content := []byte(cont)
+	err := ioutil.WriteFile(fileName, content, 0644)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func Capitalize(str string) string {
@@ -48,4 +57,12 @@ func GetGuid() string {
 
 func GetTimeSpan() int64 {
 	return time.Now().UnixNano() / 1e6
+}
+
+func JsonStringify(v interface{}) string {
+	jsonByte, err := json.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+	return string(jsonByte)
 }

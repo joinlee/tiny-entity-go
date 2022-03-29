@@ -4,7 +4,7 @@ import (
 	"log"
 )
 
-func Transaction(ctx IDataContext, handle func(ctx IDataContext)) {
+func Transaction[T IDataContext](ctx T, handle func(ctx T)) {
 	defer func() {
 		if r := recover(); r != nil {
 			ctx.RollBack()

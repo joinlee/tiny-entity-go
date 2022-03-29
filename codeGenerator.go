@@ -3,7 +3,6 @@ package tiny
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -12,13 +11,13 @@ import (
 	"github.com/joinlee/tiny-entity-go/utils"
 )
 
-type CodeGenerator struct {
+type CodeGenerator[T IDataContextInterpreter] struct {
 	options CodeGeneratorOptions
-	ctx     IDataContext
+	ctx     T
 }
 
-func NewCodeGenerator(opt CodeGeneratorOptions) *CodeGenerator {
-	obj := &CodeGenerator{}
+func NewCodeGenerator[T IDataContextInterpreter](ctx T, opt CodeGeneratorOptions) *CodeGenerator[T] {
+	obj := &CodeGenerator[T]{}
 	if opt.Host == "" {
 		opt.Host = "localhost"
 	}
@@ -42,11 +41,12 @@ func NewCodeGenerator(opt CodeGeneratorOptions) *CodeGenerator {
 	}
 
 	obj.options = opt
+	obj.ctx = ctx
 
 	return obj
 }
 
-func (this *CodeGenerator) getCtxFileName() string {
+func (this *CodeGenerator[T]) getCtxFileName() string {
 	fnames := strings.Split(this.options.CtxFileName, "/")
 	fName := fnames[len(fnames)-1]
 
@@ -55,7 +55,7 @@ func (this *CodeGenerator) getCtxFileName() string {
 	return ctxStructName
 }
 
-func (this *CodeGenerator) GenerateCtxFile() {
+func (this *CodeGenerator[T]) GenerateCtxFile() {
 	rootPath := utils.GetRootPath()
 	ctxStructName := this.getCtxFileName()
 	modelNames := this.LoadEntityModes()
@@ -89,9 +89,9 @@ func (this *CodeGenerator) GenerateCtxFile() {
 	content += fmt.Sprintf("ctx := &%s{} \n", ctxStructName)
 
 	if this.options.Driver == "mysql" {
-		content += "ctx.MysqlDataContext = tinyMysql.NewMysqlDataContext(tinyMysql.MysqlDataOption{ \n"
+		content += "ctx.MysqlDataContext = tinyMysql.NewMysqlDataContext(tiny.DataContextOptions{ \n"
 	} else if this.options.Driver == "kingbase" {
-		content += "ctx.KingDataContext = tinyKing.NewKingDataContext(tinyKing.KingDataOption{ \n"
+		content += "ctx.KingDataContext = tinyKing.NewKingDataContext(tiny.DataContextOptions{ \n"
 	}
 
 	content += fmt.Sprintf("Host:            \"%s\", \n", this.options.Host)
@@ -136,10 +136,10 @@ func (this *CodeGenerator) GenerateCtxFile() {
 	}
 	content += "return list } \n"
 
-	WriteFile(content, rootPath+"/"+this.options.CtxFileName+".go")
+	utils.WriteFile(content, rootPath+"/"+this.options.CtxFileName+".go")
 }
 
-func (this *CodeGenerator) LoadEntityModes() []string {
+func (this *CodeGenerator[T]) LoadEntityModes() []string {
 	rootPath := utils.GetRootPath()
 	modelNames := make([]string, 0)
 
@@ -155,11 +155,10 @@ func (this *CodeGenerator) LoadEntityModes() []string {
 	return modelNames
 }
 
-func (this *CodeGenerator) AutoMigration(ctx IDataContext) {
-	this.ctx = ctx
+func (this *CodeGenerator[T]) AutoMigration() {
 	var logReport MigrationLog
 	ctxFileName := this.getCtxFileName()
-	fileStr := ReadFile(fmt.Sprintf("%s/%s_migrationLogs.json", utils.GetRootPath(), ctxFileName))
+	fileStr := utils.ReadFile(fmt.Sprintf("%s/%s_migrationLogs.json", utils.GetRootPath(), ctxFileName))
 	if fileStr != "" {
 		json.Unmarshal([]byte(fileStr), &logReport)
 		// 已经有历史的迁移记录
@@ -173,19 +172,12 @@ func (this *CodeGenerator) AutoMigration(ctx IDataContext) {
 	} else {
 		// 第一次初始化的时候，生成迁移记录
 		logs := make([]MigrationLogInfo, 0)
-		for _, entity := range ctx.GetEntityList() {
-			var interpreter IInterpreter
-			if this.options.Driver == "mysql" {
-				interpreter = NewInterpreter(entity.TableName())
-			} else if this.options.Driver == "kingbase" {
-				interpreter = NewInterpreterKing(entity.TableName())
-			}
-
+		for _, entity := range this.ctx.GetEntityList() {
 			log := MigrationLogInfo{
 				Content: MigrationLogContent{
 					TableName:    entity.TableName(),
 					Version:      utils.GetTimeSpan(),
-					ColumnDefine: interpreter.GetEntityFieldsDefineInfo(entity),
+					ColumnDefine: this.ctx.GetEntityFieldsDefineInfo(entity),
 				},
 				Action: "init",
 			}
@@ -210,18 +202,18 @@ func (this *CodeGenerator) AutoMigration(ctx IDataContext) {
 	sqlReports = append(sqlReports, sqlItem)
 
 	if len(sqlStrs) > 0 {
-		Transaction(this.ctx, func(ctx IDataContext) {
+		Transaction(this.ctx, func(ctx T) {
 			ctx.Query(strings.Join(sqlStrs, ""))
 		})
 
-		WriteFile(JsonStringify(logReport), fmt.Sprintf("%s_migrationLogs.json", ctxFileName))
-		WriteFile(JsonStringify(sqlReports), fmt.Sprintf("%s_migrationSqls.json", ctxFileName))
+		utils.WriteFile(utils.JsonStringify(logReport), fmt.Sprintf("%s_migrationLogs.json", ctxFileName))
+		utils.WriteFile(utils.JsonStringify(sqlReports), fmt.Sprintf("%s_migrationSqls.json", ctxFileName))
 	}
 
 	fmt.Println("AutoMigration Finish!!!")
 }
 
-func (this *CodeGenerator) TransLogToSqls(historyLog MigrationLog) []string {
+func (this *CodeGenerator[T]) TransLogToSqls(historyLog MigrationLog) []string {
 	entityMap := this.ctx.GetEntityList()
 	sqlStr := make([]string, 0)
 	for _, logItem := range historyLog.Logs {
@@ -236,24 +228,17 @@ func (this *CodeGenerator) TransLogToSqls(historyLog MigrationLog) []string {
 
 		if logItem.Action == "alter" {
 			for _, diffItem := range logItem.DiffContent.Column {
-				var interpreter IInterpreter
-				if this.options.Driver == "mysql" {
-					interpreter = NewInterpreter(logItem.Content.TableName)
-				} else if this.options.Driver == "kingbase" {
-					interpreter = NewInterpreterKing(logItem.Content.TableName)
-				}
-
 				if diffItem.OldItem != nil && diffItem.NewItem == nil {
 					// 表示删除字段
 					// sqlStr = append(sqlStr, fmt.Sprintf("ALTER TABLE `%s` DROP `%s`; ", logItem.Content.TableName, diffItem.OldItem[tagDefine.Column]))
-					sqlStr = append(sqlStr, interpreter.AlterTableDropColumn(logItem.Content.TableName, diffItem.OldItem[tagDefine.Column].(string)))
+					sqlStr = append(sqlStr, this.ctx.AlterTableDropColumn(logItem.Content.TableName, diffItem.OldItem[tagDefine.Column].(string)))
 				}
 
 				if diffItem.OldItem == nil && diffItem.NewItem != nil {
 					// 表示新增字段
-					colStr, indexStr := interpreter.GetColumnSqls(diffItem.NewItem, diffItem.NewItem[tagDefine.Column].(string), "add", false, logItem.Content.TableName)
+					colStr, indexStr := this.ctx.GetColumnSqls(diffItem.NewItem, diffItem.NewItem[tagDefine.Column].(string), "add", false, logItem.Content.TableName)
 					// sqlStr = append(sqlStr, fmt.Sprintf("ALTER TABLE `%s` ADD %s; ", logItem.Content.TableName, colStr))
-					sqlStr = append(sqlStr, interpreter.AlterTableAddColumn(logItem.Content.TableName, colStr))
+					sqlStr = append(sqlStr, this.ctx.AlterTableAddColumn(logItem.Content.TableName, colStr))
 					if indexStr != "" {
 						sqlStr = append(sqlStr, indexStr)
 					}
@@ -264,11 +249,11 @@ func (this *CodeGenerator) TransLogToSqls(historyLog MigrationLog) []string {
 					indexDefine := diffItem.OldItem[tagDefine.INDEX]
 					delIndex := indexDefine != nil && indexDefine.(bool)
 
-					colStr, indexStr := interpreter.GetColumnSqls(diffItem.NewItem, diffItem.NewItem[tagDefine.Column].(string), "alter", delIndex, logItem.Content.TableName)
+					colStr, indexStr := this.ctx.GetColumnSqls(diffItem.NewItem, diffItem.NewItem[tagDefine.Column].(string), "alter", delIndex, logItem.Content.TableName)
 
 					// sqlStr = append(sqlStr, fmt.Sprintf("ALTER TABLE `%s` CHANGE `%s` `%s` %s; ", logItem.Content.TableName, diffItem.OldItem[tagDefine.Column], diffItem.NewItem[tagDefine.Column], colStr))
 
-					sqlStr = append(sqlStr, interpreter.AlterTableAlterColumn(logItem.Content.TableName, diffItem.OldItem[tagDefine.Column].(string), diffItem.NewItem[tagDefine.Column].(string), colStr))
+					sqlStr = append(sqlStr, this.ctx.AlterTableAlterColumn(logItem.Content.TableName, diffItem.OldItem[tagDefine.Column].(string), diffItem.NewItem[tagDefine.Column].(string), colStr))
 
 					if indexStr != "" {
 						sqlStr = append(sqlStr, indexStr)
@@ -292,7 +277,7 @@ func (this *CodeGenerator) TransLogToSqls(historyLog MigrationLog) []string {
 	return sqlStr
 }
 
-func (this *CodeGenerator) ComparisonTable(historyLog MigrationLog) []MigrationLogInfo {
+func (this *CodeGenerator[T]) ComparisonTable(historyLog MigrationLog) []MigrationLogInfo {
 	entities := this.ctx.GetEntityList()
 	diff := make([]MigrationLogInfo, 0)
 	// 对比表格的变化
@@ -358,7 +343,7 @@ func (this *CodeGenerator) ComparisonTable(historyLog MigrationLog) []MigrationL
 	return diff
 }
 
-func (this *CodeGenerator) ComparisonColumn(oldC MigrationLogContent, newC MigrationLogContent) []MigrationLogDiff {
+func (this *CodeGenerator[T]) ComparisonColumn(oldC MigrationLogContent, newC MigrationLogContent) []MigrationLogDiff {
 	diff := make([]MigrationLogDiff, 0)
 
 	for columnName, newItem := range newC.ColumnDefine {
@@ -425,14 +410,13 @@ func (this *CodeGenerator) ComparisonColumn(oldC MigrationLogContent, newC Migra
 	return diff
 }
 
-func (this *CodeGenerator) getAddMigrationLogInfo(tableName string, entity Entity) MigrationLogInfo {
-	interpreter := NewInterpreter(tableName)
+func (this *CodeGenerator[T]) getAddMigrationLogInfo(tableName string, entity Entity) MigrationLogInfo {
 	return MigrationLogInfo{
 		Action: "add",
 		Content: MigrationLogContent{
 			TableName:    tableName,
 			Version:      time.Now().UnixNano() / 1e6,
-			ColumnDefine: interpreter.GetEntityFieldsDefineInfo(entity),
+			ColumnDefine: this.ctx.GetEntityFieldsDefineInfo(entity),
 		},
 	}
 }
@@ -450,35 +434,6 @@ type CodeGeneratorOptions struct {
 	CharSet         string `json:"charSet"`
 	ConnectionLimit int    `json:"connectionLimit"`
 	Driver          string `json:"driver"`
-}
-
-func WriteFile(cont string, fileName string) {
-	content := []byte(cont)
-	err := ioutil.WriteFile(fileName, content, 0644)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func ReadFile(fileName string) string {
-	f, err := ioutil.ReadFile(fileName)
-	if err != nil {
-		fmt.Println("read fail", err)
-		return ""
-	}
-	return string(f)
-}
-
-func JsonStringify(v interface{}) string {
-	jsonByte, err := json.Marshal(v)
-	if err != nil {
-		panic(err)
-	}
-	return string(jsonByte)
-}
-
-func ArrayFind(list interface{}, key string) interface{} {
-	return nil
 }
 
 type MigrationLogInfo struct {

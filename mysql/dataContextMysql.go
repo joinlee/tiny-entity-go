@@ -1,3 +1,13 @@
+/*
+ * @Author: john lee
+ * @Date: 2021-06-07 13:28:01
+ * @LastEditors: john lee
+ * @LastEditTime: 2022-03-29 19:01:08
+ * @FilePath: \tiny-entity-go\mysql\dataContextMysql.go
+ * @Description:
+ *
+ * Copyright (c) 2022 by 用户/公司名, All Rights Reserved.
+ */
 package tinyMysql
 
 import (
@@ -43,7 +53,11 @@ func NewMysqlDataContext(opt tiny.DataContextOptions) *MysqlDataContext {
 	return ctx
 }
 
-//插入数据到数据库
+/**
+ * @description: 插入数据到数据库
+ * @param {tiny.Entity} entity 需要插入的实体对象
+ * @return {*}
+ */
 func (this *MysqlDataContext) Create(entity tiny.Entity) {
 	sql := this.CreateSql(entity)
 	this.Submit(sql)
@@ -77,7 +91,13 @@ func (this *MysqlDataContext) Delete(entity tiny.Entity) {
 	this.Submit(sql)
 }
 
-//通过指定条件删除数据
+/**
+ * @description: 通过指定条件删除数据
+ * @param {tiny.Entity} entity 实体对象
+ * @param {interface{}} queryStr 条件参数 例子：gender = 'male'
+ * @param {...interface{}} args 参数值
+ * @return void
+ */
 func (this *MysqlDataContext) DeleteWith(entity tiny.Entity, queryStr interface{}, args ...interface{}) {
 	sql := this.DeleteWithSql(entity, queryStr, args...)
 	this.Submit(sql)

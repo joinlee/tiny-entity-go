@@ -2,7 +2,7 @@
  * @Author: john lee
  * @Date: 2021-06-07 13:28:01
  * @LastEditors: john lee
- * @LastEditTime: 2022-03-29 19:01:08
+ * @LastEditTime: 2022-03-30 11:30:22
  * @FilePath: \tiny-entity-go\mysql\dataContextMysql.go
  * @Description:
  *
@@ -26,8 +26,8 @@ type MysqlDataContext struct {
 	option tiny.DataContextOptions
 	// tx           *sql.Tx
 	// tranCount    int
-	conStr       string
-	entityRefMap map[string]reflect.Type
+	conStr string
+	// entityRefMap map[string]reflect.Type
 
 	*tiny.DataContextBase
 }
@@ -48,7 +48,7 @@ func NewMysqlDataContext(opt tiny.DataContextOptions) *MysqlDataContext {
 	ctx.Db = tiny.GetDB(conStr, opt.ConnectionLimit, "mysql")
 
 	ctx.option = opt
-	ctx.entityRefMap = make(map[string]reflect.Type)
+	// ctx.entityRefMap = make(map[string]reflect.Type)
 
 	return ctx
 }
@@ -94,11 +94,11 @@ func (this *MysqlDataContext) Delete(entity tiny.Entity) {
 /**
  * @description: 通过指定条件删除数据
  * @param {tiny.Entity} entity 实体对象
- * @param {interface{}} queryStr 条件参数 例子：gender = 'male'
+ * @param {interface{}} queryStr 条件参数 例子：gender = 'male' AND gender IS NOT Null
  * @param {...interface{}} args 参数值
  * @return void
  */
-func (this *MysqlDataContext) DeleteWith(entity tiny.Entity, queryStr interface{}, args ...interface{}) {
+func (this *MysqlDataContext) DeleteWith(entity tiny.Entity, queryStr string, args ...interface{}) {
 	sql := this.DeleteWithSql(entity, queryStr, args...)
 	this.Submit(sql)
 }
@@ -142,8 +142,7 @@ func (this *MysqlDataContext) CreateTable(entity tiny.Entity) {
 }
 
 func (this *MysqlDataContext) RegistModel(entity tiny.Entity) {
-	t := reflect.TypeOf(entity).Elem()
-	this.entityRefMap[t.Name()] = t
+	this.DataContextBase.RegistModel(entity)
 }
 
 func (t *MysqlDataContext) GetEntityFieldsDefineInfo(entity interface{}) map[string]map[string]interface{} {
@@ -177,7 +176,7 @@ func (t *MysqlDataContext) AlterTableDropColumn(tableName string, columnName str
 	return fmt.Sprintf("ALTER TABLE `%s` Drop `%s`; ", tableName, columnName)
 }
 
-func (t *MysqlDataContext) AlterTableAddColumn(tableName string, columnName string) string {
+func (this *MysqlDataContext) AlterTableAddColumn(tableName string, columnName string) string {
 	return fmt.Sprintf("ALTER TABLE `%s` Add %s; ", tableName, columnName)
 }
 
@@ -187,4 +186,8 @@ func (t *MysqlDataContext) AlterTableAlterColumn(tableName string, oldColumnName
 
 func (this *MysqlDataContext) GetColumnSqls(defineMap map[string]interface{}, fieldName string, action string, delIndexSql bool, tableName string) (columnSql string, indexSql string) {
 	return this.DataContextBase.GetColumnSqls(defineMap, fieldName, action, delIndexSql, tableName)
+}
+
+func (this *MysqlDataContext) GetEntityList() map[string]tiny.Entity {
+	return nil
 }

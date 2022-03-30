@@ -1,3 +1,13 @@
+/*
+ * @Author: john lee
+ * @Date: 2021-06-07 13:28:01
+ * @LastEditors: john lee
+ * @LastEditTime: 2022-03-30 09:31:26
+ * @FilePath: \tiny-entity-go\dataContext.go
+ * @Description:
+ *
+ * Copyright (c) 2022 by 用户/公司名, All Rights Reserved.
+ */
 package tiny
 
 type IDataContext interface {
@@ -18,7 +28,7 @@ type IDataContext interface {
 	//entity 实体对象
 	//queryStr 条件参数 例子：gender = 'male'
 	// args 参数值
-	DeleteWith(entity Entity, queryStr interface{}, args ...interface{})
+	DeleteWith(entity Entity, queryStr string, args ...interface{})
 	//开起事务
 	BeginTranscation()
 	//提交事务

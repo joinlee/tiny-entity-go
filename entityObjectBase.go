@@ -21,6 +21,12 @@ type EntityObjectBase[T Entity] struct {
 	Ctx          *DataContextBase
 	TableName    string
 	JoinEntities map[string]JoinEntityItem
+	Chart        string
+}
+
+func (this *EntityObjectBase[T]) InitEntityObj(tableName string) {
+	this.TableName = tableName
+	this.JoinEntities = make(map[string]JoinEntityItem)
 }
 
 func (this *EntityObjectBase[T]) SetCtx(ctx interface{}) {
@@ -30,6 +36,7 @@ func (this *EntityObjectBase[T]) SetCtx(ctx interface{}) {
 func (this *EntityObjectBase[T]) First() *T {
 	entity := new(T)
 	sqlStr := this.Ctx.GetFinalSql(this.TableName, *entity)
+	sqlStr = this.replaceChart(sqlStr)
 	rows := this.Ctx.Query(sqlStr)
 	dataList := this.QueryToDatas2(this.TableName, rows)
 
@@ -50,8 +57,13 @@ func (this *EntityObjectBase[T]) ToList() []T {
 	list := make([]T, 0)
 	mEntity := new(T)
 	sqlStr := this.Ctx.GetFinalSql(this.TableName, *mEntity)
+	sqlStr = this.replaceChart(sqlStr)
 	rows := this.Ctx.Query(sqlStr)
 	dataList := this.QueryToDatas2(this.TableName, rows)
+
+	if len(dataList) == 0 {
+		return list
+	}
 
 	jsonStr := utils.JsonStringify(dataList)
 	json.Unmarshal([]byte(jsonStr), &list)
@@ -59,11 +71,6 @@ func (this *EntityObjectBase[T]) ToList() []T {
 	this.Ctx.Clean()
 
 	return list
-}
-
-func (this *EntityObjectBase[T]) InitEntityObj(tableName string) {
-	this.TableName = tableName
-	this.JoinEntities = make(map[string]JoinEntityItem)
 }
 
 func (this *EntityObjectBase[T]) JoinHandle(mTableName string, fEntity Entity, mField string, fField string) {
@@ -139,6 +146,45 @@ func (this *EntityObjectBase[T]) SelectHandle(fields ...interface{}) {
 	this.Ctx.AddToSelect(list)
 }
 
+func (this *EntityObjectBase[T]) MaxHandle(fields string) string {
+	this.Ctx.CleanSelectPart()
+	sql := fmt.Sprintf("Max(`%s`)", fields)
+	this.Ctx.AddToSelect([]string{sql})
+	sqlStr := this.Ctx.GetFinalSql(this.TableName, nil)
+	sqlStr = this.replaceChart(sqlStr)
+	rows := this.Ctx.Query(sqlStr)
+	this.Ctx.Clean()
+
+	for _, rowData := range rows {
+		for _, cellData := range rowData {
+			return cellData
+		}
+	}
+
+	return ""
+}
+
+func (this *EntityObjectBase[T]) MinHandle(fields string) string {
+	this.Ctx.CleanSelectPart()
+	sql := fmt.Sprintf("Min(`%s`)", fields)
+	this.Ctx.AddToSelect([]string{sql})
+	sqlStr := this.Ctx.GetFinalSql(this.TableName, nil)
+	sqlStr = this.replaceChart(sqlStr)
+	if this.Chart != "" && this.Chart != "`" {
+		sqlStr = strings.ReplaceAll(sqlStr, "`", this.Chart)
+	}
+	rows := this.Ctx.Query(sqlStr)
+	this.Ctx.Clean()
+
+	for _, rowData := range rows {
+		for _, cellData := range rowData {
+			return cellData
+		}
+	}
+
+	return ""
+}
+
 func (this *EntityObjectBase[T]) CountHandle(field string) int {
 	this.Ctx.CleanSelectPart()
 	this.Ctx.AddToSelect([]string{fmt.Sprintf("COUNT(%s)", field)})
@@ -155,10 +201,15 @@ func (this *EntityObjectBase[T]) CountHandle(field string) int {
 	return result
 }
 
+func (this *EntityObjectBase[T]) GetEntityObjectByName(tableName string) any {
+	objType := this.Ctx.entityRefMap[tableName]
+	return reflect.New(objType).Elem().Interface()
+}
+
 func (this *EntityObjectBase[T]) QueryToDatas2(tableName string, rows map[int]map[string]string) []map[string]interface{} {
-	mEntity := new(T)
-	mappingList := this.getEntityMappingFields(*mEntity)
-	aesList := this.getEntityAESFields(*mEntity)
+	mEntity := this.GetEntityObjectByName(tableName)
+	mappingList := this.getEntityMappingFields(mEntity)
+	aesList := this.getEntityAESFields(mEntity)
 
 	dataList := this.formatToData(tableName, rows)
 
@@ -232,7 +283,7 @@ func (this *EntityObjectBase[T]) joinDataFilter(arr []map[string]interface{}, mK
 	return result
 }
 
-func (this *EntityObjectBase[T]) getEntityMappingFields(entity T) map[string]string {
+func (this *EntityObjectBase[T]) getEntityMappingFields(entity interface{}) map[string]string {
 	result := make(map[string]string)
 	eType := reflect.TypeOf(entity)
 	entityPtrValueElem := reflect.ValueOf(reflect.New(eType).Interface()).Elem()
@@ -262,7 +313,7 @@ func (this *EntityObjectBase[T]) getEntityMappingFields(entity T) map[string]str
 	return result
 }
 
-func (this *EntityObjectBase[T]) getEntityAESFields(entity T) []string {
+func (this *EntityObjectBase[T]) getEntityAESFields(entity interface{}) []string {
 	result := make([]string, 0)
 	eType := reflect.TypeOf(entity)
 	entityPtrValueElem := reflect.ValueOf(reflect.New(eType).Interface()).Elem()
@@ -329,4 +380,12 @@ func (this *EntityObjectBase[T]) formatToData(tableName string, rows map[int]map
 	}
 
 	return dataList
+}
+
+func (this *EntityObjectBase[T]) replaceChart(str string) string {
+	if this.Chart != "" && this.Chart != "`" {
+		str = strings.ReplaceAll(str, "`", this.Chart)
+	}
+
+	return str
 }

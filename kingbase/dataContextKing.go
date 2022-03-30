@@ -13,10 +13,10 @@ import (
 )
 
 type KingDataContext struct {
-	option       tiny.DataContextOptions
-	tx           *sql.Tx
-	conStr       string
-	entityRefMap map[string]reflect.Type
+	option tiny.DataContextOptions
+	tx     *sql.Tx
+	conStr string
+	// entityRefMap map[string]reflect.Type
 
 	*tiny.DataContextBase
 }
@@ -34,7 +34,7 @@ func NewKingDataContext(opt tiny.DataContextOptions) *KingDataContext {
 	ctx.Db = tiny.GetDB(conStr, opt.ConnectionLimit, "kingbase")
 
 	ctx.option = opt
-	ctx.entityRefMap = make(map[string]reflect.Type)
+	// ctx.entityRefMap = make(map[string]reflect.Type)
 
 	return ctx
 }
@@ -83,7 +83,7 @@ func (this *KingDataContext) Delete(entity tiny.Entity) {
 }
 
 //通过指定条件删除数据
-func (this *KingDataContext) DeleteWith(entity tiny.Entity, queryStr interface{}, args ...interface{}) {
+func (this *KingDataContext) DeleteWith(entity tiny.Entity, queryStr string, args ...interface{}) {
 	sql := this.DeleteWithSql(entity, queryStr, args...)
 	sql = this.FilterQuotes(sql)
 	this.Submit(sql)
@@ -103,8 +103,8 @@ func (this *KingDataContext) CreateDatabase() {
 		panic(err)
 	}
 
-	sql := this.CreateDatabaseSQL()
-	sql = this.FilterQuotes(sql)
+	sql := fmt.Sprintf("CREATE DATABASE \"%s\" encoding utf8;", this.option.DataBaseName)
+	tiny.Log(sql)
 
 	_, err1 := db.Exec(sql)
 	if err1 != nil {
@@ -121,6 +121,7 @@ func (this *KingDataContext) DeleteDatabase() {
 func (this *KingDataContext) CreateTable(entity tiny.Entity) {
 	sqlStr := this.CreateTableSQL(entity)
 	sqlStr = this.FilterQuotes(sqlStr)
+	tiny.Log(sqlStr)
 	rows, err := this.Db.Query(sqlStr)
 	rows.Close()
 	if err != nil {
@@ -196,6 +197,7 @@ func (this *KingDataContext) GetColumnSqls(defineMap map[string]interface{}, fie
 
 func (this *KingDataContext) CreateTableSQL(entity tiny.Entity) string {
 	sql := this.DropTableSQL(entity.TableName())
+	sql = this.FilterQuotes(sql)
 	etype := reflect.TypeOf(entity).Elem()
 	tableName := entity.TableName()
 
@@ -225,8 +227,7 @@ func (this *KingDataContext) CreateTableSQL(entity tiny.Entity) string {
 }
 
 func (this *KingDataContext) RegistModel(entity tiny.Entity) {
-	t := reflect.TypeOf(entity).Elem()
-	this.entityRefMap[t.Name()] = t
+	this.DataContextBase.RegistModel(entity)
 }
 
 // func (this *KingDataContext) GetEntityInstance(entityName string) interface{} {
@@ -302,4 +303,8 @@ func (this *KingDataContext) AlterTableAlterColumn(tableName string, oldColumnNa
 	sql += fmt.Sprintf("ALTER TABLE \"%s\" %s", tableName, strings.Join(changeFieldItems, ","))
 
 	return sql
+}
+
+func (this *KingDataContext) GetEntityList() map[string]tiny.Entity {
+	return nil
 }

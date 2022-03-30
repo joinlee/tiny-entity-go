@@ -1,12 +1,9 @@
 package tinyKing
 
 import (
-	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/joinlee/tiny-entity-go"
-	"github.com/joinlee/tiny-entity-go/utils"
 )
 
 type EntityObjectKing[T tiny.Entity] struct {
@@ -19,6 +16,7 @@ func NewEntityObjectKing[T tiny.Entity](ctx *KingDataContext, tableName string) 
 	entity.base = &tiny.EntityObjectBase[T]{}
 	entity.base.InitEntityObj(tableName)
 	entity.base.SetCtx(ctx.DataContextBase)
+	entity.base.Chart = "\""
 
 	return entity
 }
@@ -118,14 +116,12 @@ func (this *EntityObjectKing[T]) JoinOnWith(mEntity tiny.Entity, fEntity tiny.En
 	return this
 }
 
-func (this *EntityObjectKing[T]) Max() float64 {
-	this.base.Ctx.Clean()
-	return 0
+func (this *EntityObjectKing[T]) Max(field string) string {
+	return this.base.MaxHandle(field)
 }
 
-func (this *EntityObjectKing[T]) Min() float64 {
-	this.base.Ctx.Clean()
-	return 0
+func (this *EntityObjectKing[T]) Min(field string) string {
+	return this.base.MinHandle(field)
 }
 func (this *EntityObjectKing[T]) Count() int {
 	return this.CountArgs(fmt.Sprintf("\"%s\".\"Id\"", this.base.TableName))
@@ -145,36 +141,9 @@ func (this *EntityObjectKing[T]) ReplaceChar(sql string) string {
 }
 
 func (this *EntityObjectKing[T]) First() *T {
-	entity := new(T)
-	sqlStr := this.base.Ctx.GetFinalSql(this.base.TableName, *entity)
-	sqlStr = strings.ReplaceAll(sqlStr, "`", "\"")
-	rows := this.base.Ctx.Query(sqlStr)
-	dataList := this.base.QueryToDatas2(this.base.TableName, rows)
-
-	if len(dataList) > 0 {
-		jsonStr := utils.JsonStringify(dataList[0])
-		json.Unmarshal([]byte(jsonStr), entity)
-	} else {
-		entity = nil
-	}
-
-	this.base.InitEntityObj(this.base.TableName)
-	this.base.Ctx.Clean()
-
-	return entity
+	return this.base.First()
 }
 
 func (this *EntityObjectKing[T]) ToList() []T {
-	list := make([]T, 0)
-	mEntity := new(T)
-	sqlStr := this.base.Ctx.GetFinalSql(this.base.TableName, *mEntity)
-	rows := this.base.Ctx.Query(sqlStr)
-	dataList := this.base.QueryToDatas2(this.base.TableName, rows)
-
-	jsonStr := utils.JsonStringify(dataList)
-	json.Unmarshal([]byte(jsonStr), &list)
-	this.base.InitEntityObj(this.base.TableName)
-	this.base.Ctx.Clean()
-
-	return list
+	return this.base.ToList()
 }

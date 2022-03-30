@@ -1,2 +1,2 @@
-TinyDataContext_migrationLogs*.json
-TinyDataContext_migrationSqls*.json
+*_migrationLogs*.json
+*_migrationSqls*.json

@@ -29,14 +29,15 @@ type DataContextBase struct {
 	Option DataContextOptions
 	AESKey string
 
-	selectStrs  []string
-	WhereStrs   []string
-	orderByStrs []string
-	groupByStrs []string
-	limt        map[string]int
-	joinOnPart  []string
-	tranCount   int
-	tx          *sql.Tx
+	selectStrs   []string
+	WhereStrs    []string
+	orderByStrs  []string
+	groupByStrs  []string
+	limt         map[string]int
+	joinOnPart   []string
+	tranCount    int
+	tx           *sql.Tx
+	entityRefMap map[string]reflect.Type
 }
 
 func NewDataContextBase(opt DataContextOptions) *DataContextBase {
@@ -51,6 +52,7 @@ func NewDataContextBase(opt DataContextOptions) *DataContextBase {
 	obj.groupByStrs = make([]string, 0)
 	obj.limt = make(map[string]int, 0)
 	obj.joinOnPart = make([]string, 0)
+	obj.entityRefMap = make(map[string]reflect.Type)
 	return obj
 }
 
@@ -108,7 +110,7 @@ func (this *DataContextBase) GetSelectFieldList(entity Entity, tableName string)
 			continue
 		}
 
-		list = append(list, fmt.Sprintf("%s AS %s_%s", this.AddFieldTableName(cName, tableName), tableName, cName))
+		list = append(list, fmt.Sprintf("%s AS `%s_%s`", fmt.Sprintf("`%s`.`%s`", tableName, cName), tableName, cName))
 	}
 
 	return list
@@ -319,7 +321,6 @@ func (t *DataContextBase) FilterSpecialChar(sql string) string {
 
 func (this *DataContextBase) CreateDatabaseSQL() string {
 	sql := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` DEFAULT CHARACTER SET %s COLLATE utf8_unicode_ci;", this.Option.DataBaseName, this.Option.CharSet)
-	Log(sql)
 	return sql
 }
 
@@ -703,4 +704,9 @@ func (this *DataContextBase) Submit(sql string) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (this *DataContextBase) RegistModel(entity Entity) {
+	t := reflect.TypeOf(entity).Elem()
+	this.entityRefMap[t.Name()] = t
 }

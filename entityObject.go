@@ -50,10 +50,13 @@ type IQueryObject[T any] interface {
 
 	// 需要获取的数据行数
 	Take(count int) ITakeChildQueryObject[T]
-	// 添加外联引用
-	/*
-		fEntity 需要连接的实体， mField 主表的连接字段， fField 外联表的字段
-	*/
+	/**
+	 * @description: 添加外联引用
+	 * @param {Entity} foreignEntity 外键表的实体对象
+	 * @param {string} mField 要关联的主键表的字段
+	 * @param {string} fField 要关联的外键表字段
+	 * @return {IQueryObject[T]}
+	 */
 	JoinOn(foreignEntity Entity, mField string, fField string) IQueryObject[T]
 	// 添加外联引用
 	/*
@@ -66,8 +69,8 @@ type IQueryObject[T any] interface {
 
 type IResultQueryObject[T any] interface {
 	IAssembleResultQuery[T]
-	Max() float64
-	Min() float64
+	Max(field string) string
+	Min(field string) string
 	//查询结果数量
 	Count() int
 	//带有参数的Count
@@ -93,13 +96,11 @@ type ITakeChildQueryObject[T any] interface {
 }
 
 type IAssembleResultQuery[T any] interface {
-	// 查询数据库，并返回列表结果
-	/*
-		args 需要返回的实体的指针
-		例子：
-		list := make([]models.User, 0)
-		ctx.User.ToList(&list)
-	*/
+	/**
+	 * @description:  查询数据库，并返回列表结果
+	 * @param {*}
+	 * @return {*}
+	 */
 	ToList() []T
 }
 

@@ -115,14 +115,12 @@ func (this *EntityObjectMysql[T]) JoinOnWith(mEntity tiny.Entity, fEntity tiny.E
 	return this
 }
 
-func (this *EntityObjectMysql[T]) Max() float64 {
-	this.base.Ctx.Clean()
-	return 0
+func (this *EntityObjectMysql[T]) Max(field string) string {
+	return this.base.MaxHandle(field)
 }
 
-func (this *EntityObjectMysql[T]) Min() float64 {
-	this.base.Ctx.Clean()
-	return 0
+func (this *EntityObjectMysql[T]) Min(field string) string {
+	return this.base.MinHandle(field)
 }
 func (this *EntityObjectMysql[T]) Count() int {
 	return this.CountArgs(fmt.Sprintf("`%s`.`Id`", this.base.TableName))

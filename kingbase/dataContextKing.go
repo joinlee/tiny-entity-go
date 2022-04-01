@@ -166,7 +166,7 @@ func (this *KingDataContext) GetColumnSqls(defineMap map[string]interface{}, fie
 	}
 
 	if isPk {
-		valueStr = "NOT NULL "
+		valueStr = " NOT NULL "
 	}
 
 	defaultValue, has := defineMap[tagDefine.DEFAULT]
@@ -230,15 +230,6 @@ func (this *KingDataContext) RegistModel(entity tiny.Entity) {
 	this.DataContextBase.RegistModel(entity)
 }
 
-// func (this *KingDataContext) GetEntityInstance(entityName string) interface{} {
-// 	entityType, ok := this.entityRefMap[entityName]
-// 	if !ok {
-// 		return nil
-// 	}
-
-// 	return reflect.New(entityType).Elem().Interface()
-// }
-
 func (this *KingDataContext) GetEntityFieldsDefineInfo(entity interface{}) map[string]map[string]interface{} {
 	result := make(map[string]map[string]interface{})
 	et := reflect.TypeOf(entity).Elem()
@@ -271,7 +262,7 @@ func (this *KingDataContext) AlterTableDropColumn(tableName string, columnName s
 }
 
 func (this *KingDataContext) AlterTableAddColumn(tableName string, columnName string) string {
-	return fmt.Sprintf("ALTER TABLE \"%s\" ADD COLUMN \"%s\"; ", tableName, columnName)
+	return fmt.Sprintf("ALTER TABLE \"%s\" ADD COLUMN IF NOT EXISTS %s; ", tableName, columnName)
 }
 
 func (this *KingDataContext) AlterTableAlterColumn(tableName string, oldColumnName string, newColumnName string, changeSql string) string {
@@ -300,7 +291,7 @@ func (this *KingDataContext) AlterTableAlterColumn(tableName string, oldColumnNa
 		}
 	}
 
-	sql += fmt.Sprintf("ALTER TABLE \"%s\" %s", tableName, strings.Join(changeFieldItems, ","))
+	sql += fmt.Sprintf("ALTER TABLE \"%s\" %s; ", tableName, strings.Join(changeFieldItems, ","))
 
 	return sql
 }

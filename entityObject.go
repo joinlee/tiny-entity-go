@@ -102,6 +102,7 @@ type IAssembleResultQuery[T any] interface {
 	 * @return {*}
 	 */
 	ToList() []T
+	GetIQueryObject() IQueryObject[T]
 }
 
 type Empty struct{}

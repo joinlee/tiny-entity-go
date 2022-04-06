@@ -60,6 +60,8 @@ func (this *EntityObjectBase[T]) ToList() []T {
 	sqlStr = this.replaceChart(sqlStr)
 	rows := this.Ctx.Query(sqlStr)
 	dataList := this.QueryToDatas2(this.TableName, rows)
+	this.clean()
+	this.InitEntityObj(this.TableName)
 
 	if len(dataList) == 0 {
 		return list
@@ -67,8 +69,6 @@ func (this *EntityObjectBase[T]) ToList() []T {
 
 	jsonStr := utils.JsonStringify(dataList)
 	json.Unmarshal([]byte(jsonStr), &list)
-	this.InitEntityObj(this.TableName)
-	this.Ctx.Clean()
 
 	return list
 }
@@ -153,7 +153,7 @@ func (this *EntityObjectBase[T]) MaxHandle(fields string) string {
 	sqlStr := this.Ctx.GetFinalSql(this.TableName, nil)
 	sqlStr = this.replaceChart(sqlStr)
 	rows := this.Ctx.Query(sqlStr)
-	this.Ctx.Clean()
+	this.clean()
 
 	for _, rowData := range rows {
 		for _, cellData := range rowData {
@@ -174,7 +174,7 @@ func (this *EntityObjectBase[T]) MinHandle(fields string) string {
 		sqlStr = strings.ReplaceAll(sqlStr, "`", this.Chart)
 	}
 	rows := this.Ctx.Query(sqlStr)
-	this.Ctx.Clean()
+	this.clean()
 
 	for _, rowData := range rows {
 		for _, cellData := range rowData {
@@ -189,6 +189,9 @@ func (this *EntityObjectBase[T]) CountHandle(field string) int {
 	this.Ctx.CleanSelectPart()
 	this.Ctx.AddToSelect([]string{fmt.Sprintf("COUNT(%s)", field)})
 	sqlStr := this.Ctx.GetFinalSql(this.TableName, nil)
+	if this.Chart == "\"" {
+		sqlStr = strings.ReplaceAll(sqlStr, "`", this.Chart)
+	}
 	rows := this.Ctx.Query(sqlStr)
 
 	result := 0
@@ -197,7 +200,7 @@ func (this *EntityObjectBase[T]) CountHandle(field string) int {
 			result, _ = strconv.Atoi(cellData)
 		}
 	}
-	this.Ctx.Clean()
+	this.clean()
 	return result
 }
 
@@ -271,6 +274,11 @@ func (this *EntityObjectBase[T]) QueryToDatas2(tableName string, rows map[int]ma
 	}
 
 	return dataList
+}
+
+func (this *EntityObjectBase[T]) clean() {
+	this.JoinEntities = make(map[string]JoinEntityItem, 0)
+	this.Ctx.Clean()
 }
 
 func (this *EntityObjectBase[T]) joinDataFilter(arr []map[string]interface{}, mKeyValue interface{}, fKey string) []map[string]interface{} {

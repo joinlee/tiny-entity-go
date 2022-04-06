@@ -70,7 +70,7 @@ func (this *DataContextBase) AddToWhere(sql string, brackets bool) {
 }
 
 func (this *DataContextBase) AddToOrdereBy(field string, isDesc bool, tableName string) {
-	field = this.AddFieldTableName(field, tableName)
+	field = fmt.Sprintf("`%s`.`%s`", tableName, field)
 	if isDesc {
 		field += " DESC"
 	}
@@ -78,7 +78,7 @@ func (this *DataContextBase) AddToOrdereBy(field string, isDesc bool, tableName 
 }
 
 func (this *DataContextBase) AddToGroupBy(field string, tableName string) {
-	field = this.AddFieldTableName(field, tableName)
+	field = fmt.Sprintf("`%s`.`%s`", tableName, field)
 	this.groupByStrs = append(this.groupByStrs, field)
 }
 
@@ -149,7 +149,7 @@ func (this *DataContextBase) GetFinalSql(tableName string, entity Entity) string
 		sql += " WHERE " + strings.Join(tmp, " ")
 	}
 	if len(this.groupByStrs) > 0 {
-		sql += fmt.Sprintf(" GROUP BY %s", strings.Join(this.groupByStrs, ""))
+		sql += fmt.Sprintf(" GROUP BY %s", strings.Join(this.groupByStrs, ","))
 	}
 	if len(this.orderByStrs) > 0 {
 		sql += fmt.Sprintf(" ORDER BY %s", strings.Join(this.orderByStrs, ","))
@@ -203,7 +203,7 @@ func (this *DataContextBase) CreateBatchSql(entities []Entity) string {
 			valueStrs = append(valueStrs, fmt.Sprintf("(%s)", strings.Join(values, ",")))
 		}
 
-		sql := fmt.Sprintf("INSERT INTO `%s` (%s) VALUES (%s);", tableName, fieldPart, strings.Join(valueStrs, ","))
+		sql := fmt.Sprintf("INSERT INTO `%s` (%s) VALUES %s;", tableName, fieldPart, strings.Join(valueStrs, ","))
 
 		return sql
 	}
@@ -267,6 +267,7 @@ func (this *DataContextBase) DeleteWithSql(entity Entity, queryStr interface{}, 
 		for _, value := range args {
 			qs = strings.Replace(qs, "?", this.TransValueToStr(value), 1)
 		}
+		qs = this.AddFieldTableName(qs, tableName)
 		qs = "WHERE " + qs
 	}
 

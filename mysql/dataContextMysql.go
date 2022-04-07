@@ -1,10 +1,19 @@
+/*
+ * @Author: john lee
+ * @Date: 2021-06-07 13:28:01
+ * @LastEditors: john lee
+ * @LastEditTime: 2022-03-30 11:30:22
+ * @FilePath: \tiny-entity-go\mysql\dataContextMysql.go
+ * @Description:
+ *
+ * Copyright (c) 2022 by 用户/公司名, All Rights Reserved.
+ */
 package tinyMysql
 
 import (
 	"database/sql"
 	"fmt"
 	"reflect"
-	"strings"
 
 	"github.com/joinlee/tiny-entity-go"
 	"github.com/joinlee/tiny-entity-go/tagDefine"
@@ -13,17 +22,17 @@ import (
 )
 
 type MysqlDataContext struct {
-	db            *sql.DB
-	interpreter   *tiny.Interpreter
-	option        MysqlDataOption
-	querySentence []string
-	tx            *sql.Tx
-	tranCount     int
-	conStr        string
-	entityRefMap  map[string]reflect.Type
+	// db           *sql.DB
+	option tiny.DataContextOptions
+	// tx           *sql.Tx
+	// tranCount    int
+	conStr string
+	// entityRefMap map[string]reflect.Type
+
+	*tiny.DataContextBase
 }
 
-func NewMysqlDataContext(opt MysqlDataOption) *MysqlDataContext {
+func NewMysqlDataContext(opt tiny.DataContextOptions) *MysqlDataContext {
 	ctx := &MysqlDataContext{}
 
 	conStr := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s&multiStatements=true",
@@ -35,83 +44,36 @@ func NewMysqlDataContext(opt MysqlDataOption) *MysqlDataContext {
 		opt.CharSet)
 	ctx.conStr = conStr
 
-	ctx.db = GetDB(conStr, opt.ConnectionLimit, "mysql")
+	ctx.DataContextBase = tiny.NewDataContextBase(opt)
+	ctx.Db = tiny.GetDB(conStr, opt.ConnectionLimit, "mysql")
 
-	ctx.interpreter = &tiny.Interpreter{}
-	ctx.interpreter.AESKey = tiny.AESKey
 	ctx.option = opt
-	ctx.querySentence = make([]string, 0)
-	ctx.tranCount = 0
-	ctx.entityRefMap = make(map[string]reflect.Type)
+	// ctx.entityRefMap = make(map[string]reflect.Type)
 
 	return ctx
 }
 
-//插入数据到数据库
+/**
+ * @description: 插入数据到数据库
+ * @param {tiny.Entity} entity 需要插入的实体对象
+ * @return {*}
+ */
 func (this *MysqlDataContext) Create(entity tiny.Entity) {
-	tableName := this.getTableNameFromEntity(entity)
-	sql := fmt.Sprintf("INSERT INTO `%s`", tableName)
-	fields, values, _ := this.getKeyValueList(entity, true)
-	sql += fmt.Sprintf(" (%s) VALUES (%s);", strings.Join(fields, ","), strings.Join(values, ","))
-
-	if this.tx == nil {
-		this.submit(sql, false)
-	} else {
-		this.querySentence = append(this.querySentence, sql)
-		this.tx.Exec(sql)
-	}
+	sql := this.CreateSql(entity)
+	this.Submit(sql)
 }
 
 func (this *MysqlDataContext) CreateBatch(entities []tiny.Entity) {
 	if len(entities) > 0 {
-		tableName := this.getTableNameFromEntity(entities[0])
-		sql := fmt.Sprintf("INSERT INTO `%s`", tableName)
-		fieldPart := ""
-		valueStrs := make([]string, 0)
-
-		for _, entity := range entities {
-			tfields, values, _ := this.getKeyValueList(entity, true)
-			if fieldPart == "" {
-				fieldPart = strings.Join(tfields, ",")
-			}
-			valueStrs = append(valueStrs, fmt.Sprintf("(%s)", strings.Join(values, ",")))
-		}
-
-		sql = fmt.Sprintf("%s (%s) VALUES %s;", sql, fieldPart, strings.Join(valueStrs, ","))
-
-		if this.tx == nil {
-			this.submit(sql, false)
-		} else {
-			this.querySentence = append(this.querySentence, sql)
-			this.tx.Exec(sql)
-		}
+		sql := this.CreateBatchSql(entities)
+		this.Submit(sql)
 	}
-
 }
 
 //更新数据到数据库
 func (this *MysqlDataContext) Update(entity tiny.Entity) {
-	tableName := this.getTableNameFromEntity(entity)
-	sql := fmt.Sprintf("UPDATE `%s` SET ", tableName)
-	_, _, kvMap := this.getKeyValueList(entity, false)
-
-	vList := make([]string, 0)
-	idValue := ""
-	for k, v := range kvMap {
-		if k == "Id" {
-			idValue = v
-			continue
-		}
-		vList = append(vList, fmt.Sprintf("`%s`=%s", k, v))
-	}
-	sql += strings.Join(vList, ",") + " WHERE `Id` = " + idValue + ";"
-
-	if this.tx == nil {
-		this.submit(sql, false)
-	} else {
-		this.querySentence = append(this.querySentence, sql)
-		this.tx.Exec(sql)
-	}
+	sql := this.UpdateSql(entity)
+	this.Submit(sql)
 }
 
 //批量更新数据表中的数据
@@ -119,65 +81,26 @@ func (this *MysqlDataContext) Update(entity tiny.Entity) {
 //fields 需要更新的字段列表，传入参数例子：[ Username = 'lkc', age = 18 ]
 //queryStr 条件参数 例子：gender = 'male'
 func (this *MysqlDataContext) UpdateWith(entity tiny.Entity, fields interface{}, queryStr interface{}) {
-	tableName := this.getTableNameFromEntity(entity)
-	fds := fields.([]string)
-	fdsAfter := make([]string, 0)
-	for _, v := range fds {
-		fdsAfter = append(fdsAfter, this.interpreter.FormatQuerySetence(v, tableName))
-	}
-	qs := queryStr.(string)
-	qs = this.interpreter.FormatQuerySetence(qs, tableName)
-
-	sql := fmt.Sprintf("UPDATE `%s` SET %s WHERE %s ;", tableName, strings.Join(fdsAfter, ","), qs)
-
-	if this.tx == nil {
-		this.submit(sql, false)
-	} else {
-		this.querySentence = append(this.querySentence, sql)
-		this.tx.Exec(sql)
-	}
+	sql := this.UpdateWithSql(entity, fields, queryStr)
+	this.Submit(sql)
 }
 
 //通过实体Id 删除数据
 func (this *MysqlDataContext) Delete(entity tiny.Entity) {
-	tableName := this.getTableNameFromEntity(entity)
-	_, _, kvMap := this.getKeyValueList(entity, false)
-
-	sql := fmt.Sprintf("DELETE FROM `%s` WHERE `%s`.`Id`= %s ;", tableName, tableName, kvMap["Id"])
-
-	if this.tx == nil {
-		this.submit(sql, false)
-	} else {
-		this.tx.Exec(sql)
-	}
+	sql := this.DeleteSql(entity)
+	this.Submit(sql)
 }
 
-//通过指定条件删除数据
-func (this *MysqlDataContext) DeleteWith(entity tiny.Entity, queryStr interface{}, args ...interface{}) {
-	qs := queryStr.(string)
-	for _, value := range args {
-		qs = strings.Replace(qs, "?", this.interpreter.TransValueToStr(value), 1)
-	}
-
-	tableName := this.getTableNameFromEntity(entity)
-	sql := fmt.Sprintf("DELETE FROM `%s` WHERE %s ;", tableName, qs)
-
-	if this.tx == nil {
-		this.submit(sql, false)
-	} else {
-		this.querySentence = append(this.querySentence, sql)
-		this.tx.Exec(sql)
-	}
-}
-
-func (this *MysqlDataContext) getTableNameFromEntity(entity tiny.Entity) string {
-	tableName := ""
-	if reflect.TypeOf(entity).Kind() == reflect.Ptr {
-		tableName = reflect.TypeOf(entity).Elem().Name()
-	} else {
-		tableName = reflect.TypeOf(entity).Name()
-	}
-	return tableName
+/**
+ * @description: 通过指定条件删除数据
+ * @param {tiny.Entity} entity 实体对象
+ * @param {interface{}} queryStr 条件参数 例子：gender = 'male' AND gender IS NOT Null
+ * @param {...interface{}} args 参数值
+ * @return void
+ */
+func (this *MysqlDataContext) DeleteWith(entity tiny.Entity, queryStr string, args ...interface{}) {
+	sql := this.DeleteWithSql(entity, queryStr, args...)
+	this.Submit(sql)
 }
 
 func (this *MysqlDataContext) CreateDatabase() {
@@ -195,8 +118,8 @@ func (this *MysqlDataContext) CreateDatabase() {
 		panic(err)
 	}
 
-	sql := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` DEFAULT CHARACTER SET %s COLLATE utf8_unicode_ci;", this.option.DataBaseName, this.option.CharSet)
-	tiny.Log(sql)
+	sql := this.CreateDatabaseSQL()
+
 	_, err1 := db.Exec(sql)
 	if err1 != nil {
 		db.Close()
@@ -207,247 +130,64 @@ func (this *MysqlDataContext) CreateDatabase() {
 }
 
 func (this *MysqlDataContext) DeleteDatabase() {
-
 }
 
 func (this *MysqlDataContext) CreateTable(entity tiny.Entity) {
 	sqlStr := this.CreateTableSQL(entity)
-	rows, err := this.db.Query(sqlStr)
+	rows, err := this.Db.Query(sqlStr)
 	rows.Close()
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (this *MysqlDataContext) CreateTableSQL(entity tiny.Entity) string {
-	sql := this.DropTableSQL(entity.TableName())
-	etype := reflect.TypeOf(entity).Elem()
+func (this *MysqlDataContext) RegistModel(entity tiny.Entity) {
+	this.DataContextBase.RegistModel(entity)
+}
 
-	columnSqlList := make([]string, 0)
-	for i := 0; i < etype.NumField(); i++ {
-		sField := etype.Field(i)
-
-		defineStr, isTableColumn := this.interpreter.GetFieldDefineStr(sField)
-		if !isTableColumn {
+func (t *MysqlDataContext) GetEntityFieldsDefineInfo(entity interface{}) map[string]map[string]interface{} {
+	result := make(map[string]map[string]interface{})
+	et := reflect.TypeOf(entity).Elem()
+	for i := 0; i < et.NumField(); i++ {
+		fd := et.Field(i)
+		defineStr, has := t.GetFieldDefineStr(fd)
+		if !has {
 			continue
 		}
+		defineMap := t.FormatDefine(defineStr)
 
-		defineMap := this.interpreter.FormatDefine(defineStr)
 		_, isMapping := defineMap[tagDefine.Mapping]
 		if isMapping {
 			continue
 		}
-		colStr, _ := this.interpreter.GetColumnSqls(defineMap, sField.Name, "init", false, "")
-		columnSqlList = append(columnSqlList, colStr)
-	}
-	sql += fmt.Sprintf("CREATE TABLE `%s` ( %s );", entity.TableName(), strings.Join(columnSqlList, ","))
-	return sql
-}
 
-func (this *MysqlDataContext) DropTableSQL(tableName string) string {
-	return fmt.Sprintf("DROP TABLE IF EXISTS `%s`; \n", tableName)
-}
-
-func (this *MysqlDataContext) Commit() {
-	if this.tranCount > 1 {
-		this.tranCount--
-	} else if this.tranCount == 1 {
-		tiny.Log(strings.Join(this.querySentence, ""))
-
-		err := this.tx.Commit()
-		this.cleanTransactionStatus()
-		if err != nil {
-			panic(err)
+		for key, v := range defineMap {
+			if v == "" {
+				defineMap[key] = true
+			}
 		}
+		result[fd.Name] = defineMap
 	}
-}
-
-func (this *MysqlDataContext) submit(sqlStr string, isQuery bool) {
-	tiny.Log(sqlStr)
-	if isQuery {
-		rows, err := this.db.Query(sqlStr)
-		rows.Close()
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		_, err := this.db.Exec(sqlStr)
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
-func (this *MysqlDataContext) cleanTransactionStatus() {
-	this.querySentence = make([]string, 0)
-	this.tranCount = 0
-}
-
-func (this *MysqlDataContext) BeginTranscation() {
-	if this.tx == nil {
-		tx, err := this.db.Begin()
-		if err != nil {
-			panic(err)
-		}
-		this.tx = tx
-	}
-
-	this.tranCount++
-}
-
-func (this *MysqlDataContext) RollBack() {
-	if this.tx != nil {
-		this.tranCount = 0
-		this.tx.Rollback()
-		this.cleanTransactionStatus()
-	}
-}
-
-func (this *MysqlDataContext) Query(sqlStr string, noCommit bool) map[int]map[string]string {
-	var rows *sql.Rows
-	var err error
-	tiny.Log(sqlStr)
-	if this.tx != nil {
-		rows, err = this.tx.Query(sqlStr)
-	} else {
-		rows, err = this.db.Query(sqlStr)
-	}
-
-	if err != nil {
-		if rows != nil {
-			rows.Close()
-		}
-		panic(err)
-	}
-
-	//返回所有列
-	cols, _ := rows.Columns()
-	//这里表示一行所有列的值，用[]byte表示
-	vals := make([][]byte, len(cols))
-	//这里表示一行填充数据
-	scans := make([]interface{}, len(cols))
-	//这里scans引用vals，把数据填充到[]byte里
-	for k := range vals {
-		scans[k] = &vals[k]
-	}
-	i := 0
-	result := make(map[int]map[string]string)
-
-	for rows.Next() {
-		//填充数据
-		rows.Scan(scans...)
-		//每行数据
-		row := make(map[string]string)
-		//把vals中的数据复制到row中
-		for k, v := range vals {
-			key := cols[k]
-			//这里把[]byte数据转成string
-			row[key] = string(v)
-		}
-		//放入结果集
-		result[i] = row
-		i++
-	}
-
-	rows.Close()
 
 	return result
 }
 
-func (this *MysqlDataContext) RegistModel(entity tiny.Entity) {
-	t := reflect.TypeOf(entity).Elem()
-	this.entityRefMap[t.Name()] = t
+func (t *MysqlDataContext) AlterTableDropColumn(tableName string, columnName string) string {
+	return fmt.Sprintf("ALTER TABLE `%s` Drop `%s`; ", tableName, columnName)
 }
 
-func (this *MysqlDataContext) GetEntityInstance(entityName string) interface{} {
-	entityType, ok := this.entityRefMap[entityName]
-	if !ok {
-		return nil
-	}
-
-	return reflect.New(entityType).Elem().Interface()
+func (this *MysqlDataContext) AlterTableAddColumn(tableName string, columnName string) string {
+	return fmt.Sprintf("ALTER TABLE `%s` Add %s; ", tableName, columnName)
 }
 
-func (this *MysqlDataContext) getTypeAndValueRef(entity tiny.Entity) (etype reflect.Type, evalue reflect.Value) {
-	if reflect.TypeOf(entity).Kind() == reflect.Ptr {
-		etype = reflect.TypeOf(entity).Elem()
-		evalue = reflect.ValueOf(entity).Elem()
-	} else {
-		etype = reflect.TypeOf(entity)
-		evalue = reflect.ValueOf(entity)
-	}
-
-	return etype, evalue
+func (t *MysqlDataContext) AlterTableAlterColumn(tableName string, oldColumnName string, newColumnName string, changeSql string) string {
+	return fmt.Sprintf("ALTER TABLE `%s` CHANGE `%s` `%s` %s; ", tableName, oldColumnName, newColumnName, changeSql)
 }
 
-func (this *MysqlDataContext) getKeyValueList(entity tiny.Entity, includeNilValue bool) ([]string, []string, map[string]string) {
-	etype, evalue := this.getTypeAndValueRef(entity)
-	fields := make([]string, 0)
-	values := make([]string, 0)
-
-	kvMap := make(map[string]string)
-
-	for i := 0; i < etype.NumField(); i++ {
-		sField := etype.Field(i)
-		defineStr, has := this.interpreter.GetFieldDefineStr(sField)
-		if !has {
-			continue
-		}
-
-		vi := evalue.Field(i)
-		value := vi.Interface()
-		if evalue.Field(i).Kind() == reflect.Ptr && !vi.IsNil() {
-			value = evalue.Field(i).Elem().Interface()
-		}
-
-		defineMap := this.interpreter.FormatDefine(defineStr)
-		_, isAES := defineMap[tagDefine.AES]
-		if isAES {
-			vv := this.interpreter.TransValueToStr(value)
-			if vv != "NULL" {
-				value = this.interpreter.AesEncrypt(value.(string), this.interpreter.AESKey)
-			}
-		}
-
-		vStr := this.interpreter.TransValueToStr(value)
-		dataType := defineMap[tagDefine.Type]
-
-		if dataType != nil && strings.Index(dataType.(string), "varchar") > 0 {
-			vStr = fmt.Sprintf("'%s'", vStr)
-		}
-
-		columnName, has := defineMap[tagDefine.Column]
-		if !has {
-			columnName = sField.Name
-		}
-
-		_, isMapping := defineMap[tagDefine.Mapping]
-		if isMapping {
-			continue
-		}
-
-		if includeNilValue {
-			values = append(values, vStr)
-			fields = append(fields, fmt.Sprintf("`%s`", columnName))
-		} else {
-			if vStr != "NULL" {
-				values = append(values, vStr)
-				fields = append(fields, fmt.Sprintf("`%s`", columnName))
-			}
-		}
-
-		kvMap[fmt.Sprintf("%s", columnName)] = vStr
-	}
-
-	return fields, values, kvMap
+func (this *MysqlDataContext) GetColumnSqls(defineMap map[string]interface{}, fieldName string, action string, delIndexSql bool, tableName string) (columnSql string, indexSql string) {
+	return this.DataContextBase.GetColumnSqls(defineMap, fieldName, action, delIndexSql, tableName)
 }
 
-type MysqlDataOption struct {
-	Host            string
-	Port            string
-	Username        string
-	Password        string
-	DataBaseName    string
-	CharSet         string
-	ConnectionLimit int
+func (this *MysqlDataContext) GetEntityList() map[string]tiny.Entity {
+	return nil
 }

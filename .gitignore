@@ -1,2 +1,4 @@
 *_migrationLogs*.json
 *_migrationSqls*.json
+cpu.out
+test.test.exe

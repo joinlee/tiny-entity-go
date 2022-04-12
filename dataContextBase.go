@@ -576,32 +576,32 @@ func (this *DataContextBase) PKCS7Padding(ciphertext []byte, blocksize int) []by
 	return append(ciphertext, padtext...)
 }
 
-func (this *DataContextBase) ConverNilValue(fieldType string, value string) interface{} {
+func (this *DataContextBase) ConverNilValue(fieldType string, value string) (v interface{}, isStr bool) {
 	if fieldType == "*int" || fieldType == "*int64" {
 		v, _ := strconv.Atoi(value)
 		if value == "" {
-			return nil
+			return nil, false
 		}
-		return &v
+		return &v, false
 	} else if fieldType == "*bool" {
 		v, _ := strconv.ParseBool(value)
 		if value == "" {
-			return nil
+			return nil, false
 		}
-		return &v
+		return &v, false
 	} else if fieldType == "*string" {
 		if value == "" {
-			return nil
+			return nil, false
 		}
-		return &value
+		return &value, true
 	} else if fieldType == "int" || fieldType == "int64" {
 		v, _ := strconv.Atoi(value)
-		return v
+		return v, false
 	} else if fieldType == "bool" {
 		v, _ := strconv.ParseBool(value)
-		return v
+		return v, false
 	}
-	return value
+	return value, true
 }
 
 func (this *DataContextBase) GetEntityName(entity Entity) string {

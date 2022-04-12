@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	jsoniter "github.com/json-iterator/go"
+
 	"github.com/joinlee/tiny-entity-go/tagDefine"
 	"github.com/joinlee/tiny-entity-go/utils"
 )
@@ -42,7 +44,7 @@ func (this *EntityObjectBase[T]) First() *T {
 
 	if len(dataList) > 0 {
 		jsonStr := utils.JsonStringify(dataList[0])
-		json.Unmarshal([]byte(jsonStr), entity)
+		jsoniter.Unmarshal([]byte(jsonStr), entity)
 	} else {
 		entity = nil
 	}
@@ -211,24 +213,19 @@ func (this *EntityObjectBase[T]) GetEntityObjectByName(tableName string) any {
 
 func (this *EntityObjectBase[T]) QueryToDatas2(tableName string, rows map[int]map[string]string) []map[string]interface{} {
 	mEntity := this.GetEntityObjectByName(tableName)
+	// key: tableName , value: mtype(one , many)
 	mappingList := this.getEntityMappingFields(mEntity)
 	aesList := this.getEntityAESFields(mEntity)
 
 	dataList := this.formatToData(tableName, rows)
 
 	mappingDatasTmp := make(map[string][]map[string]interface{})
+	mappingFKeyIndexMap := make(map[string]map[interface{}][]map[string]interface{}, 0)
 
 	if len(mappingList) > 0 {
 		for _, dataItem := range dataList {
 			for mappingTable, mtype := range mappingList {
-				mappingDatas, has := mappingDatasTmp[mappingTable]
-				if !has {
-					mappingDatas = this.QueryToDatas2(mappingTable, rows)
-					mappingDatasTmp[mappingTable] = mappingDatas
-				}
-
 				joinObj := this.JoinEntities[mappingTable]
-
 				mkeyValue := reflect.ValueOf(dataItem[joinObj.Mkey])
 				mkeyValueType := reflect.TypeOf(dataItem[joinObj.Mkey])
 				if mkeyValueType == nil {
@@ -237,11 +234,34 @@ func (this *EntityObjectBase[T]) QueryToDatas2(tableName string, rows map[int]ma
 				if mkeyValueType.Kind() == reflect.Ptr {
 					mkeyValue = mkeyValue.Elem()
 				}
-				objs := this.joinDataFilter(mappingDatas, mkeyValue, joinObj.Fkey)
+
+				mappingDatas, has := mappingDatasTmp[mappingTable]
+				if !has {
+					mappingDatas = this.QueryToDatas2(mappingTable, rows)
+					mappingDatasTmp[mappingTable] = mappingDatas
+
+					//构建索引
+					fIndexMap := make(map[interface{}][]map[string]interface{}, 0)
+					for _, mpDataItem := range mappingDatas {
+						indexKeyValue := mpDataItem[joinObj.Fkey]
+						fii, has := fIndexMap[indexKeyValue]
+						if has {
+							fii = append(fii, mpDataItem)
+						} else {
+							fIndexMap[indexKeyValue] = []map[string]interface{}{mpDataItem}
+						}
+
+					}
+
+					mappingFKeyIndexMap[mappingTable] = fIndexMap
+				}
+
+				objs := mappingFKeyIndexMap[mappingTable][fmt.Sprintf("%s", mkeyValue)]
 				if mtype == "one" {
-					if len(mappingDatas) > 0 && len(objs) > 0 {
+					if len(objs) > 0 {
 						dataItem[mappingTable] = objs[0]
 					}
+
 				} else if mtype == "many" {
 					dataItem[mappingTable] = objs
 				}
@@ -279,16 +299,6 @@ func (this *EntityObjectBase[T]) QueryToDatas2(tableName string, rows map[int]ma
 func (this *EntityObjectBase[T]) clean() {
 	this.JoinEntities = make(map[string]JoinEntityItem, 0)
 	this.Ctx.Clean()
-}
-
-func (this *EntityObjectBase[T]) joinDataFilter(arr []map[string]interface{}, mKeyValue interface{}, fKey string) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0)
-	for _, item := range arr {
-		if fmt.Sprintf("%s", item[fKey]) == fmt.Sprintf("%s", mKeyValue) {
-			result = append(result, item)
-		}
-	}
-	return result
 }
 
 func (this *EntityObjectBase[T]) getEntityMappingFields(entity interface{}) map[string]string {
@@ -342,9 +352,9 @@ func (this *EntityObjectBase[T]) getEntityAESFields(entity interface{}) []string
 
 func (this *EntityObjectBase[T]) getEntityFieldInfo(tableName string) map[string]reflect.StructField {
 	result := make(map[string]reflect.StructField)
-	entity := new(T)
-	et := reflect.TypeOf(entity).Elem()
-	ev := reflect.ValueOf(entity).Elem()
+	entity := this.GetEntityObjectByName(tableName)
+	et := reflect.TypeOf(entity)
+	ev := reflect.ValueOf(entity)
 	for i := 0; i < ev.NumField(); i++ {
 		fdType := et.Field(i)
 		result[fdType.Name] = fdType
@@ -354,13 +364,15 @@ func (this *EntityObjectBase[T]) getEntityFieldInfo(tableName string) map[string
 
 func (this *EntityObjectBase[T]) formatToData(tableName string, rows map[int]map[string]string) []map[string]interface{} {
 	dataList := make([]map[string]interface{}, 0)
-	fieldTypeInfos := this.getEntityFieldInfo(tableName)
+	dataListTmp := make(map[string]string, 0)
 
+	jsonStrList := make([]string, 0)
+
+	mfieldTypeInfos := this.getEntityFieldInfo(tableName)
+
+	dataMap := make(map[string]interface{})
 	for i := 0; i < len(rows); i++ {
-		rowData := rows[i]
-		dataMap := make(map[string]interface{})
-
-		for fieldKey, value := range rowData {
+		for fieldKey, value := range rows[i] {
 			tmp := strings.Split(fieldKey, "_")
 			tmpTableName := tmp[0]
 			if tmpTableName != tableName {
@@ -368,24 +380,27 @@ func (this *EntityObjectBase[T]) formatToData(tableName string, rows map[int]map
 			}
 
 			fieldName := tmp[1]
-			fdType := fieldTypeInfos[fieldName]
+			fdType := mfieldTypeInfos[fieldName]
+			fieldValue, _ := this.Ctx.ConverNilValue(fmt.Sprintf("%s", fdType.Type), value)
 
-			dataMap[fieldName] = this.Ctx.ConverNilValue(fmt.Sprintf("%s", fdType.Type), value)
-		}
-
-		exist := false
-		for _, dataListItem := range dataList {
-			if dataListItem["Id"] == dataMap["Id"] {
-				exist = true
-				break
+			if fieldName == "Id" {
+				_, has := dataListTmp[fieldValue.(string)]
+				if has {
+					continue
+				} else {
+					dataListTmp[fieldValue.(string)] = fieldValue.(string)
+				}
 			}
+
+			dataMap[fieldName] = fieldValue
 		}
 
-		if !exist {
-			dataList = append(dataList, dataMap)
-		}
-
+		jsonStr := utils.JsonStringify(dataMap)
+		jsonStrList = append(jsonStrList, jsonStr)
 	}
+
+	jsonS := "[" + strings.Join(jsonStrList, ",") + "]"
+	json.Unmarshal([]byte(jsonS), &dataList)
 
 	return dataList
 }

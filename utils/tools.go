@@ -1,13 +1,13 @@
 package utils
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
 
+	jsoniter "github.com/json-iterator/go"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -60,7 +60,7 @@ func GetTimeSpan() int64 {
 }
 
 func JsonStringify(v interface{}) string {
-	jsonByte, err := json.Marshal(v)
+	jsonByte, err := jsoniter.Marshal(v)
 	if err != nil {
 		panic(err)
 	}

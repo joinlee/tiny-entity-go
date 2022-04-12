@@ -1,19 +1,11 @@
-/*
- * @Author: john lee
- * @Date: 2022-03-24 16:18:41
- * @LastEditors: john lee
- * @LastEditTime: 2022-03-30 17:09:40
- * @FilePath: \tiny-entity-go\test\tiny_mysql_test.go
- * @Description:
- *
- * Copyright (c) 2022 by john lee, All Rights Reserved.
- */
 package test
 
 import (
 	"fmt"
 	"os"
 	"testing"
+
+	_ "net/http/pprof"
 
 	"github.com/joinlee/tiny-entity-go"
 	"github.com/joinlee/tiny-entity-go/test/domain"
@@ -56,11 +48,16 @@ func TestCreate(t *testing.T) {
 		account.Id = utils.GetGuid()
 		account.Username = "likecheng"
 		account.Password = "123"
-		account.Status = ""
+		// account.Status = ""
+		account.CreateTime = 1000
 
 		ctx.Create(account)
 
 		targetAccount := ctx.Account.Where("Id = ?", account.Id).First()
+
+		if targetAccount.CreateTime != account.CreateTime {
+			t.Errorf("input: %d, output: %d", account.CreateTime, targetAccount.CreateTime)
+		}
 
 		if targetAccount.Id != account.Id {
 			t.Errorf("input: %s, output: %s", account.Id, targetAccount.Id)
@@ -101,13 +98,14 @@ func TestQuery(t *testing.T) {
 			t.Errorf("output0 lenght is not 0")
 		}
 
+		count := 10000
 		// prepare data
-		for i := 0; i < 10; i++ {
+		for i := 0; i < count; i++ {
 			account := new(models.Account)
 			account.Id = utils.GetGuid()
 			account.Username = "admin" + fmt.Sprintf("%d", i)
 			account.Password = "123"
-			account.Status = ""
+			// account.Status = ""
 
 			user := new(models.User)
 			user.Id = utils.GetGuid()
@@ -120,13 +118,17 @@ func TestQuery(t *testing.T) {
 		}
 
 		output1 := ctx.User.JoinOn(ctx.Account, "AccountId", "Id").ToList()
-		if len(output1) != 10 {
+		if len(output1) != count {
 			t.Errorf("count not equals 10, IS length: %d", len(output1))
 		}
 
 		for _, item := range output1 {
 			if item.AccountId != item.Account.Id {
 				t.Errorf("users accountId is not equals Account object id")
+			}
+
+			if item.Account.Status != nil {
+				t.Errorf("Account.Status need nil, now : %s", *item.Account.Status)
 			}
 		}
 
@@ -140,6 +142,60 @@ func TestQuery(t *testing.T) {
 			t.Errorf("min name is : %s", output3)
 		}
 	})
+}
+
+func TestBigDataInsert(t *testing.T) {
+	SetEnv()
+	ctx := domain.NewTinyDataContext()
+
+	tiny.Transaction(ctx, func(ctx *domain.TinyDataContext) {
+		ctx.DeleteWith(ctx.Account, "")
+		ctx.DeleteWith(ctx.User, "")
+
+		output0 := ctx.Account.ToList()
+		if len(output0) != 0 {
+			t.Errorf("output0 lenght is not 0")
+		}
+
+		count := 10000
+		// prepare data
+		for i := 0; i < count; i++ {
+			account := new(models.Account)
+			account.Id = utils.GetGuid()
+			account.Username = "admin" + fmt.Sprintf("%d", i)
+			account.Password = "123"
+			// account.Status = ""
+
+			user := new(models.User)
+			user.Id = utils.GetGuid()
+			user.Name = "john lee" + fmt.Sprintf("%d", i)
+			user.Phone = "13245678765"
+			user.AccountId = account.Id
+
+			ctx.Create(account)
+			ctx.Create(user)
+		}
+	})
+}
+
+func TestBigData(t *testing.T) {
+	SetEnv()
+	ctx := domain.NewTinyDataContext()
+	count := 10000
+	output1 := ctx.User.JoinOn(ctx.Account, "AccountId", "Id").ToList()
+	if len(output1) != count {
+		t.Errorf("count not equals 10, IS length: %d", len(output1))
+	}
+
+	for _, item := range output1 {
+		if item.AccountId != item.Account.Id {
+			t.Errorf("users accountId is not equals Account object id")
+		}
+
+		if item.Account.Status != nil {
+			t.Errorf("Account.Status need nil, now : %s", *item.Account.Status)
+		}
+	}
 }
 
 func TestGCTX_KB(t *testing.T) {
@@ -172,7 +228,7 @@ func TestCreate_KB(t *testing.T) {
 		account.Id = utils.GetGuid()
 		account.Username = "likecheng"
 		account.Password = "123"
-		account.Status = ""
+		// account.Status = ""
 
 		ctx.Create(account)
 
@@ -223,7 +279,7 @@ func TestQuery_KB(t *testing.T) {
 			account.Id = utils.GetGuid()
 			account.Username = "admin" + fmt.Sprintf("%d", i)
 			account.Password = "123"
-			account.Status = ""
+			// account.Status = ""
 
 			user := new(models.User)
 			user.Id = utils.GetGuid()

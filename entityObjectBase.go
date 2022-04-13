@@ -244,9 +244,9 @@ func (this *EntityObjectBase[T]) QueryToDatas2(tableName string, rows map[int]ma
 					fIndexMap := make(map[interface{}][]map[string]interface{}, 0)
 					for _, mpDataItem := range mappingDatas {
 						indexKeyValue := mpDataItem[joinObj.Fkey]
-						fii, has := fIndexMap[indexKeyValue]
+						_, has := fIndexMap[indexKeyValue]
 						if has {
-							fii = append(fii, mpDataItem)
+							fIndexMap[indexKeyValue] = append(fIndexMap[indexKeyValue], mpDataItem)
 						} else {
 							fIndexMap[indexKeyValue] = []map[string]interface{}{mpDataItem}
 						}
@@ -264,6 +264,9 @@ func (this *EntityObjectBase[T]) QueryToDatas2(tableName string, rows map[int]ma
 
 				} else if mtype == "many" {
 					dataItem[mappingTable] = objs
+					if objs == nil {
+						dataItem[mappingTable] = []map[string]interface{}{}
+					}
 				}
 			}
 		}

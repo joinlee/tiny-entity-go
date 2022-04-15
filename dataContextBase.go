@@ -690,6 +690,7 @@ func (this *DataContextBase) getTypeAndValueRef(entity Entity) (etype reflect.Ty
 
 func (this *DataContextBase) resetTransactionStatus() {
 	this.tranCount = 0
+	this.tx = nil
 }
 
 func (this *DataContextBase) Submit(sql string) {

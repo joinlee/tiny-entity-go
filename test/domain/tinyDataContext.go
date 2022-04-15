@@ -8,6 +8,7 @@ type TinyDataContext struct {
 *tinyMysql.MysqlDataContext 
 Account *models.Account 
 User *models.User 
+UserAddress *models.UserAddress 
 } 
 func NewTinyDataContext() *TinyDataContext { 
 ctx := &TinyDataContext{} 
@@ -27,14 +28,19 @@ ctx.RegistModel(ctx.Account)
 ctx.User = &models.User{ 
 IEntityObject: tinyMysql.NewEntityObjectMysql[models.User](ctx.MysqlDataContext, "User"),}
 ctx.RegistModel(ctx.User)
+ctx.UserAddress = &models.UserAddress{ 
+IEntityObject: tinyMysql.NewEntityObjectMysql[models.UserAddress](ctx.MysqlDataContext, "UserAddress"),}
+ctx.RegistModel(ctx.UserAddress)
 return ctx } 
 func (this *TinyDataContext) CreateDatabase() { 
 this.MysqlDataContext.CreateDatabase() 
 this.CreateTable(this.Account) 
 this.CreateTable(this.User) 
+this.CreateTable(this.UserAddress) 
 } 
 func (this *TinyDataContext) GetEntityList() map[string]tiny.Entity { 
 list := make(map[string]tiny.Entity) 
 list["Account"] = this.Account 
 list["User"] = this.User 
+list["UserAddress"] = this.UserAddress 
 return list } 

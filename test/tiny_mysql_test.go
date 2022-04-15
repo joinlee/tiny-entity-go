@@ -198,6 +198,69 @@ func TestBigData(t *testing.T) {
 	}
 }
 
+func TestJoinOneMany(t *testing.T) {
+	SetEnv()
+	ctx := domain.NewTinyDataContext()
+
+	var userId = ""
+	var userId2 = ""
+
+	tiny.Transaction(ctx, func(ctx *domain.TinyDataContext) {
+		ctx.DeleteWith(ctx.Account, "")
+		ctx.DeleteWith(ctx.User, "")
+		ctx.DeleteWith(ctx.UserAddress, "")
+
+		account := new(models.Account)
+		account.Id = utils.GetGuid()
+		account.Username = "lkc"
+		account.Password = "123"
+		account.CreateTime = 11122233
+
+		ctx.Create(account)
+
+		user := new(models.User)
+		user.Id = utils.GetGuid()
+		user.Name = "likecheng"
+		user.AccountId = account.Id
+
+		userId = user.Id
+
+		ctx.Create(user)
+
+		user2 := new(models.User)
+		user2.Id = utils.GetGuid()
+		user2.Name = "likecheng"
+		user2.AccountId = account.Id
+		userId2 = user2.Id
+		ctx.Create(user2)
+
+		for i := 0; i < 5; i++ {
+			userAddress := new(models.UserAddress)
+			userAddress.Id = utils.GetGuid()
+			userAddress.Phone = fmt.Sprintf("1598765456%d", i)
+			userAddress.UserId = user.Id
+			userAddress.ReciverName = fmt.Sprintf("lkc%d", i)
+			userAddress.Address = "china sichuan chengdu wuhouqu"
+
+			ctx.Create(userAddress)
+		}
+	})
+
+	obj := ctx.User.JoinOn(ctx.UserAddress, "Id", "UserId").Where("Id = ?", userId).First()
+
+	if len(obj.UserAddress) != 5 {
+		t.Errorf("obj UserAddress list must be 5!, now %d", len(obj.UserAddress))
+	}
+
+	output2 := ctx.User.JoinOn(ctx.UserAddress, "Id", "UserId").Where("Id = ?", userId2).First()
+	if output2.UserAddress == nil {
+		t.Errorf("output2 userAddress is not be null")
+	}
+	if len(output2.UserAddress) != 0 {
+		t.Errorf("obj UserAddress list must be 0!, now %d", len(output2.UserAddress))
+	}
+}
+
 func TestGCTX_KB(t *testing.T) {
 	ctx := &tinyKing.KingDataContext{}
 	codeGenerator := GetKingBaseCodeGenerator(ctx)

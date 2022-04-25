@@ -1,13 +1,3 @@
-/*
- * @Author: john lee
- * @Date: 2022-03-24 17:13:48
- * @LastEditors: john lee
- * @LastEditTime: 2022-03-30 10:51:15
- * @FilePath: \tiny-entity-go\test\common.go
- * @Description:
- *
- * Copyright (c) 2022 by john lee, All Rights Reserved.
- */
 package test
 
 import (

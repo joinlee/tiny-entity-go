@@ -19,4 +19,5 @@ const (
 	DEFAULT     = "default"
 	Mapping     = "mapping"
 	AES         = "aes"
+	COMMENT     = "comment"
 )

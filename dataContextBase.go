@@ -498,10 +498,16 @@ func (this *DataContextBase) GetColumnSqls(defineMap map[string]interface{}, fie
 		valueStr = fmt.Sprintf("DEFAULT %s", defaultValue)
 	}
 
+	var commentStr string
+	comment, has := defineMap[tagDefine.COMMENT]
+	if has {
+		commentStr = fmt.Sprintf("%s %s", tagDefine.COMMENT, comment)
+	}
+
 	if action == "alter" {
 		columnSqlList = append(columnSqlList, fmt.Sprintf("%s %s", dataType, valueStr))
 	} else {
-		columnSqlList = append(columnSqlList, fmt.Sprintf("`%s` %s %s", column, dataType, valueStr))
+		columnSqlList = append(columnSqlList, fmt.Sprintf("`%s` %s %s %s", column, dataType, valueStr, commentStr))
 	}
 
 	_, has = defineMap[tagDefine.INDEX]

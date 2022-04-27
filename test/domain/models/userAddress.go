@@ -1,6 +1,6 @@
 package models
 
-import "github.com/joinlee/tiny-entity-go"
+import "github.com/shishisongsong/tiny-entity-go"
 
 type UserAddress struct {
 	tiny.IEntityObject[UserAddress]

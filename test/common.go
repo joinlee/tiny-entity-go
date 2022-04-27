@@ -14,8 +14,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/joinlee/tiny-entity-go"
-	"github.com/joinlee/tiny-entity-go/utils"
+	"github.com/shishisongsong/tiny-entity-go"
+	"github.com/shishisongsong/tiny-entity-go/utils"
 )
 
 func GetMysqlCodeGenerator[T tiny.IDataContextInterpreter](ctx T) *tiny.CodeGenerator[T] {
@@ -27,7 +27,7 @@ func GetMysqlCodeGenerator[T tiny.IDataContextInterpreter](ctx T) *tiny.CodeGene
 	codeGenerator := tiny.NewCodeGenerator(ctx, tiny.CodeGeneratorOptions{
 		CtxFileName:     "domain/tinyDataContext",
 		ModelFilePath:   "domain/models",
-		ModulePkgName:   "github.com/joinlee/tiny-entity-go/test/domain/models",
+		ModulePkgName:   "github.com/shishisongsong/tiny-entity-go/test/domain/models",
 		PackageName:     "domain",
 		Username:        opt.Username,
 		Password:        opt.Password,
@@ -49,7 +49,7 @@ func GetKingBaseCodeGenerator[T tiny.IDataContextInterpreter](ctx T) *tiny.CodeG
 	codeGenerator := tiny.NewCodeGenerator(ctx, tiny.CodeGeneratorOptions{
 		CtxFileName:     "domain/tinyDataContextKingBase",
 		ModelFilePath:   "domain/models",
-		ModulePkgName:   "github.com/joinlee/tiny-entity-go/test/domain/models",
+		ModulePkgName:   "github.com/shishisongsong/tiny-entity-go/test/domain/models",
 		PackageName:     "domain",
 		Username:        opt.Username,
 		Password:        opt.Password,

@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/joinlee/tiny-entity-go/tagDefine"
+	"github.com/shishisongsong/tiny-entity-go/tagDefine"
 )
 
 type DataContextOptions struct {

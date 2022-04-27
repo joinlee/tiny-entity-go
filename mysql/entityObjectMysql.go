@@ -3,7 +3,7 @@ package tinyMysql
 import (
 	"fmt"
 
-	"github.com/joinlee/tiny-entity-go"
+	"github.com/shishisongsong/tiny-entity-go"
 )
 
 type EntityObjectMysql[T tiny.Entity] struct {

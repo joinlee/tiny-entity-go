@@ -7,13 +7,13 @@ import (
 
 	_ "net/http/pprof"
 
-	"github.com/joinlee/tiny-entity-go"
-	"github.com/joinlee/tiny-entity-go/test/domain"
-	"github.com/joinlee/tiny-entity-go/test/domain/models"
-	"github.com/joinlee/tiny-entity-go/utils"
+	"github.com/shishisongsong/tiny-entity-go"
+	"github.com/shishisongsong/tiny-entity-go/test/domain"
+	"github.com/shishisongsong/tiny-entity-go/test/domain/models"
+	"github.com/shishisongsong/tiny-entity-go/utils"
 
-	tinyKing "github.com/joinlee/tiny-entity-go/kingbase"
-	tinyMysql "github.com/joinlee/tiny-entity-go/mysql"
+	tinyKing "github.com/shishisongsong/tiny-entity-go/kingbase"
+	tinyMysql "github.com/shishisongsong/tiny-entity-go/mysql"
 )
 
 func SetEnv() {

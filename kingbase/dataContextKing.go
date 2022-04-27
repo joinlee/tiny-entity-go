@@ -6,10 +6,10 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/joinlee/tiny-entity-go"
-	"github.com/joinlee/tiny-entity-go/tagDefine"
+	"github.com/shishisongsong/tiny-entity-go"
+	"github.com/shishisongsong/tiny-entity-go/tagDefine"
 
-	_ "github.com/joinlee/kingbase-driver"
+	_ "github.com/shishisongsong/kingbase-driver"
 )
 
 type KingDataContext struct {

@@ -1,4 +1,4 @@
-module github.com/joinlee/tiny-entity-go
+module github.com/shishisongsong/tiny-entity-go
 
 go 1.18
 

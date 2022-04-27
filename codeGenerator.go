@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shishisongsong/tiny-entity-go/tagDefine"
-	"github.com/shishisongsong/tiny-entity-go/utils"
+	"github.com/joinlee/tiny-entity-go/tagDefine"
+	"github.com/joinlee/tiny-entity-go/utils"
 )
 
 type CodeGenerator[T IDataContextInterpreter] struct {
@@ -63,12 +63,12 @@ func (this *CodeGenerator[T]) GenerateCtxFile() {
 	content := fmt.Sprintf("package %s \n", this.options.PackageName)
 	content += "import ( \n"
 	content += fmt.Sprintf(" \"%s\" \n", this.options.ModulePkgName)
-	content += "\"github.com/shishisongsong/tiny-entity-go\" \n"
+	content += "\"github.com/joinlee/tiny-entity-go\" \n"
 
 	if this.options.Driver == "mysql" {
-		content += "tinyMysql \"github.com/shishisongsong/tiny-entity-go/mysql\" \n"
+		content += "tinyMysql \"github.com/joinlee/tiny-entity-go/mysql\" \n"
 	} else if this.options.Driver == "kingbase" {
-		content += "tinyKing \"github.com/shishisongsong/tiny-entity-go/kingbase\" \n"
+		content += "tinyKing \"github.com/joinlee/tiny-entity-go/kingbase\" \n"
 	}
 
 	content += ") \n"

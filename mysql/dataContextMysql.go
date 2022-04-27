@@ -15,8 +15,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/shishisongsong/tiny-entity-go"
-	"github.com/shishisongsong/tiny-entity-go/tagDefine"
+	"github.com/joinlee/tiny-entity-go"
+	"github.com/joinlee/tiny-entity-go/tagDefine"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -138,7 +138,7 @@ func (this *MysqlDataContext) CreateTable(entity tiny.Entity) {
 	if err != nil {
 		panic(err)
 	}
-	rows.Close()
+	defer rows.Close()
 }
 
 func (this *MysqlDataContext) RegistModel(entity tiny.Entity) {

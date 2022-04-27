@@ -3,7 +3,7 @@ package tinyKing
 import (
 	"fmt"
 
-	"github.com/shishisongsong/tiny-entity-go"
+	"github.com/joinlee/tiny-entity-go"
 )
 
 type EntityObjectKing[T tiny.Entity] struct {

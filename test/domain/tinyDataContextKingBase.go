@@ -1,9 +1,9 @@
 package domain
 
 import (
-	"github.com/shishisongsong/tiny-entity-go"
-	tinyKing "github.com/shishisongsong/tiny-entity-go/kingbase"
-	"github.com/shishisongsong/tiny-entity-go/test/domain/models"
+	"github.com/joinlee/tiny-entity-go"
+	tinyKing "github.com/joinlee/tiny-entity-go/kingbase"
+	"github.com/joinlee/tiny-entity-go/test/domain/models"
 )
 
 type TinyDataContextKingBase struct {

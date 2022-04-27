@@ -1,9 +1,9 @@
 package domain
 
 import (
-	"github.com/shishisongsong/tiny-entity-go"
-	tinyMysql "github.com/shishisongsong/tiny-entity-go/mysql"
-	"github.com/shishisongsong/tiny-entity-go/test/domain/models"
+	"github.com/joinlee/tiny-entity-go"
+	tinyMysql "github.com/joinlee/tiny-entity-go/mysql"
+	"github.com/joinlee/tiny-entity-go/test/domain/models"
 )
 
 type TinyDataContext struct {

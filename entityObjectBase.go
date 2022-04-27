@@ -9,8 +9,8 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 
-	"github.com/shishisongsong/tiny-entity-go/tagDefine"
-	"github.com/shishisongsong/tiny-entity-go/utils"
+	"github.com/joinlee/tiny-entity-go/tagDefine"
+	"github.com/joinlee/tiny-entity-go/utils"
 )
 
 type JoinEntityItem struct {

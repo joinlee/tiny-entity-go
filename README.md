@@ -10,7 +10,7 @@
 ## Install
 
 ```sh
-$ go get -u github.com/shishisongsong/tiny-entity-go
+$ go get -u github.com/joinlee/tiny-entity-go
 ```
 
 ## Introduction
@@ -30,7 +30,7 @@ you can define an entity model like this:
 ``` golang
 package models
 
-import "github.com/shishisongsong/tiny-entity-go"
+import "github.com/joinlee/tiny-entity-go"
 
 type User struct {
 	tiny.IEntityObject[User]
@@ -89,7 +89,7 @@ Age         *int          `tiny:"int(10)" json:"age"`
 package models
 
 import (
-	"github.com/shishisongsong/tiny-entity-go"
+	"github.com/joinlee/tiny-entity-go"
 )
 
 type Account struct {
@@ -114,7 +114,7 @@ Account     *Account      `tiny:"mapping:Account" json:"account"`
 ```go
 package models
 
-import "github.com/shishisongsong/tiny-entity-go"
+import "github.com/joinlee/tiny-entity-go"
 
 type UserAddress struct {
 	tiny.IEntityObject[UserAddress]

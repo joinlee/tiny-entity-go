@@ -6,10 +6,10 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/shishisongsong/tiny-entity-go"
-	"github.com/shishisongsong/tiny-entity-go/tagDefine"
+	"github.com/joinlee/tiny-entity-go"
+	"github.com/joinlee/tiny-entity-go/tagDefine"
 
-	_ "github.com/shishisongsong/kingbase-driver"
+	_ "github.com/joinlee/kingbase-driver"
 )
 
 type KingDataContext struct {
@@ -126,7 +126,7 @@ func (this *KingDataContext) CreateTable(entity tiny.Entity) {
 	if err != nil {
 		panic(err)
 	}
-	rows.Close()
+	defer rows.Close()
 }
 
 func (this *KingDataContext) GetColumnSqls(defineMap map[string]interface{}, fieldName string, action string, delIndexSql bool, tableName string) (columnSql string, indexSql string) {

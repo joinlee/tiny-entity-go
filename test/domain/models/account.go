@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/shishisongsong/tiny-entity-go"
+	"github.com/joinlee/tiny-entity-go"
 )
 
 type Account struct {

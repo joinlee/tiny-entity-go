@@ -197,7 +197,6 @@ func (this *KingDataContext) GetColumnSqls(defineMap map[string]interface{}, fie
 
 func (this *KingDataContext) CreateTableSQL(entity tiny.Entity) string {
 	sql := this.DropTableSQL(entity.TableName())
-	sql = this.FilterQuotes(sql)
 	etype := reflect.TypeOf(entity).Elem()
 	tableName := entity.TableName()
 
@@ -224,6 +223,10 @@ func (this *KingDataContext) CreateTableSQL(entity tiny.Entity) string {
 	sql += fmt.Sprintf("CREATE TABLE \"%s\" ( %s );", tableName, strings.Join(columnSqlList, ","))
 	sql += strings.Join(indexSqls, "")
 	return sql
+}
+
+func (this *KingDataContext) DropTableSQL(tableName string) string {
+	return fmt.Sprintf("DROP TABLE IF EXISTS \"%s\"; \n", tableName)
 }
 
 func (this *KingDataContext) RegistModel(entity tiny.Entity) {

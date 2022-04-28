@@ -152,6 +152,8 @@ func TestBigDataInsert(t *testing.T) {
 		ctx.DeleteWith(ctx.Account, "")
 		ctx.DeleteWith(ctx.User, "")
 
+		// ctx.UpdateWith(ctx.User, []string{"Name = 'john lee'"}, "Age > 18")
+
 		output0 := ctx.Account.ToList()
 		if len(output0) != 0 {
 			t.Errorf("output0 lenght is not 0")

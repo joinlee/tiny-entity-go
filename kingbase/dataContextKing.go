@@ -123,10 +123,10 @@ func (this *KingDataContext) CreateTable(entity tiny.Entity) {
 	sqlStr = this.FilterQuotes(sqlStr)
 	tiny.Log(sqlStr)
 	rows, err := this.Db.Query(sqlStr)
-	rows.Close()
 	if err != nil {
 		panic(err)
 	}
+	defer rows.Close()
 }
 
 func (this *KingDataContext) GetColumnSqls(defineMap map[string]interface{}, fieldName string, action string, delIndexSql bool, tableName string) (columnSql string, indexSql string) {
@@ -202,6 +202,7 @@ func (this *KingDataContext) CreateTableSQL(entity tiny.Entity) string {
 
 	columnSqlList := make([]string, 0)
 	indexSqls := make([]string, 0)
+	commentSqls := make([]string, 0)
 	for i := 0; i < etype.NumField(); i++ {
 		sField := etype.Field(i)
 
@@ -219,9 +220,15 @@ func (this *KingDataContext) CreateTableSQL(entity tiny.Entity) string {
 		colSql, indexSql := this.GetColumnSqls(defineMap, sField.Name, "init", false, tableName)
 		columnSqlList = append(columnSqlList, colSql)
 		indexSqls = append(indexSqls, indexSql)
+
+		if comment, ok := defineMap[tagDefine.COMMENT]; ok {
+			commentSql := fmt.Sprintf("COMMENT ON COLUMN \"%s\".\"%s\" IS %s;", tableName, sField.Name, comment)
+			commentSqls = append(commentSqls, commentSql)
+		}
 	}
 	sql += fmt.Sprintf("CREATE TABLE \"%s\" ( %s );", tableName, strings.Join(columnSqlList, ","))
 	sql += strings.Join(indexSqls, "")
+	sql += strings.Join(commentSqls, "")
 	return sql
 }
 
@@ -301,4 +308,24 @@ func (this *KingDataContext) AlterTableAlterColumn(tableName string, oldColumnNa
 
 func (this *KingDataContext) GetEntityList() map[string]tiny.Entity {
 	return nil
+}
+
+func (this *KingDataContext) AddComments(entity tiny.Entity) {
+	commentSqls := make([]string, 0)
+	fieldsDefineInfo := this.GetEntityFieldsDefineInfo(entity)
+	for fName, defineMap := range fieldsDefineInfo {
+		if comment, ok := defineMap[tagDefine.COMMENT]; ok {
+			commentSql := fmt.Sprintf("COMMENT ON COLUMN \"%s\".\"%s\" IS %s;", entity.TableName(), fName, comment)
+			commentSqls = append(commentSqls, commentSql)
+		}
+	}
+	sqlStr := strings.Join(commentSqls, "")
+	if sqlStr != "" {
+		rows, err := this.Db.Query(sqlStr)
+		if err != nil {
+			panic(err)
+		}
+		rows.Close()
+	}
+
 }

@@ -135,10 +135,10 @@ func (this *MysqlDataContext) DeleteDatabase() {
 func (this *MysqlDataContext) CreateTable(entity tiny.Entity) {
 	sqlStr := this.CreateTableSQL(entity)
 	rows, err := this.Db.Query(sqlStr)
-	rows.Close()
 	if err != nil {
 		panic(err)
 	}
+	defer rows.Close()
 }
 
 func (this *MysqlDataContext) RegistModel(entity tiny.Entity) {

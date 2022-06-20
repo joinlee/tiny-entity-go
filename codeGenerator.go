@@ -263,18 +263,17 @@ func (this *CodeGenerator[T]) TransLogToSqls(historyLog MigrationLog) []string {
 		}
 	}
 
-	tmp := make(map[string]int)
+	tmp := make(map[string]struct{})
+	newSqlStr := make([]string, 0)
 
 	for _, item := range sqlStr {
-		tmp[item] = 1
+		if _, ok := tmp[item]; !ok {
+			tmp[item] = struct{}{}
+			newSqlStr = append(newSqlStr, item)
+		}
 	}
 
-	sqlStr = make([]string, 0)
-	for sql := range tmp {
-		sqlStr = append(sqlStr, sql)
-	}
-
-	return sqlStr
+	return newSqlStr
 }
 
 func (this *CodeGenerator[T]) ComparisonTable(historyLog MigrationLog) []MigrationLogInfo {
